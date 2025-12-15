@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tractor, Mail, Lock, Eye, EyeOff, ArrowRight, User, Phone, Building } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 const Register = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -14,9 +18,33 @@ const Register = () => {
     userType: "client",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Register:", formData);
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.name,
+            phone: formData.phone,
+            company: formData.company,
+            role: formData.userType,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Compte créé avec succès ! Veuillez vérifier votre email.");
+      navigate("/login");
+    } catch (error: any) {
+      toast.error(error.message || "Une erreur est survenue lors de l'inscription");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const userTypes = [
@@ -29,20 +57,20 @@ const Register = () => {
     <div className="min-h-screen bg-background flex">
       {/* Left Side - Visual */}
       <div className="hidden lg:flex lg:w-1/2 gradient-hero items-center justify-center p-12 relative overflow-hidden">
-        <div 
+        <div
           className="absolute inset-0 opacity-10"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
           }}
         />
-        
+
         <div className="relative z-10 text-center max-w-md">
           <div className="text-8xl mb-8">🌾</div>
           <h2 className="text-3xl font-display font-bold text-primary-foreground mb-4">
             Rejoignez la communauté OUTILTECH
           </h2>
           <p className="text-primary-foreground/80 text-lg">
-            Plus de 500 professionnels de l'agriculture nous font déjà confiance 
+            Plus de 500 professionnels de l'agriculture nous font déjà confiance
             pour gérer leur matériel.
           </p>
         </div>
@@ -84,11 +112,10 @@ const Register = () => {
                     key={type.value}
                     type="button"
                     onClick={() => setFormData({ ...formData, userType: type.value })}
-                    className={`p-3 rounded-xl text-xs font-medium border transition-all ${
-                      formData.userType === type.value
-                        ? "border-primary bg-primary/5 text-primary"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/50"
-                    }`}
+                    className={`p-3 rounded-xl text-xs font-medium border transition-all ${formData.userType === type.value
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/50"
+                      }`}
                   >
                     {type.label}
                   </button>
@@ -204,9 +231,9 @@ const Register = () => {
               </span>
             </label>
 
-            <Button type="submit" variant="hero" size="lg" className="w-full">
-              Créer mon compte
-              <ArrowRight className="w-5 h-5" />
+            <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
+              {loading ? "Création compte..." : "Créer mon compte"}
+              {!loading && <ArrowRight className="w-5 h-5" />}
             </Button>
           </form>
 

@@ -1,17 +1,36 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tractor, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 const Login = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login
-    console.log("Login:", { email, password });
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast.success("Connexion réussie !");
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast.error(error.message || "Une erreur est survenue lors de la connexion");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -92,9 +111,9 @@ const Login = () => {
               </Link>
             </div>
 
-            <Button type="submit" variant="hero" size="lg" className="w-full">
-              Se connecter
-              <ArrowRight className="w-5 h-5" />
+            <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
+              {loading ? "Connexion en cours..." : "Se connecter"}
+              {!loading && <ArrowRight className="w-5 h-5" />}
             </Button>
           </form>
 
@@ -109,20 +128,20 @@ const Login = () => {
 
       {/* Right Side - Visual */}
       <div className="hidden lg:flex lg:w-1/2 gradient-hero items-center justify-center p-12 relative overflow-hidden">
-        <div 
+        <div
           className="absolute inset-0 opacity-10"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
           }}
         />
-        
+
         <div className="relative z-10 text-center max-w-md">
           <div className="text-8xl mb-8">🚜</div>
           <h2 className="text-3xl font-display font-bold text-primary-foreground mb-4">
             Gérez votre activité agricole en toute simplicité
           </h2>
           <p className="text-primary-foreground/80 text-lg">
-            Accédez à votre tableau de bord personnalisé, suivez vos locations 
+            Accédez à votre tableau de bord personnalisé, suivez vos locations
             et optimisez vos opérations.
           </p>
         </div>

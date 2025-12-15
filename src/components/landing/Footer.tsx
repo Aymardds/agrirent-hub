@@ -48,7 +48,7 @@ const Footer = () => {
               <span className="font-display text-xl font-bold">OUTILTECH</span>
             </Link>
             <p className="text-sidebar-foreground/70 mb-6 max-w-xs">
-              La plateforme digitale de référence pour la location et la gestion 
+              La plateforme digitale de référence pour la location et la gestion
               de matériel agricole en Afrique de l'Ouest.
             </p>
             <div className="flex gap-3">
@@ -135,7 +135,7 @@ const Footer = () => {
             © 2024 OUTILTECH. Tous droits réservés.
           </p>
           <p className="text-sidebar-foreground/60 text-sm">
-            Fait avec ❤️ à Dakar, Sénégal
+            Fait avec ❤️ GRAINOTECH
           </p>
         </div>
       </div>

@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Package, 
-  Users, 
-  Calendar, 
-  FileText, 
-  Settings, 
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Package,
+  Users,
+  Calendar,
+  FileText,
+  Settings,
   LogOut,
   Tractor,
   ChevronLeft,
@@ -18,21 +18,45 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { normalizeRole, UserRole } from "@/lib/roleUtils";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  userRole?: "super_admin" | "admin" | "stock_manager" | "technician" | "client" | "accountant";
+  userRole?: UserRole;
 }
 
-const DashboardLayout = ({ children, userRole = "super_admin" }: DashboardLayoutProps) => {
+const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Use the role from user metadata with normalization, fallback to prop
+  const normalizedRole = normalizeRole(user?.user_metadata?.role);
+  const userRole = (normalizedRole as UserRole) || propUserRole;
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
+  // Debug: Log menu configuration
+  useEffect(() => {
+    console.log('📋 Dashboard Layout Loaded:', {
+      userRole,
+      menuItems: menu.length,
+      currentPath: location.pathname,
+      menu: menu.map(m => ({ label: m.label, href: m.href }))
+    });
+  }, [userRole, location.pathname]);
 
   const roleMenus = {
     super_admin: [
       { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard" },
       { icon: Users, label: "Utilisateurs", href: "/dashboard/users" },
-      { icon: Package, label: "Matériels", href: "/dashboard/equipment" },
+      { icon: Package, label: "Matériels", href: "/dashboard/stock" },
       { icon: Calendar, label: "Locations", href: "/dashboard/rentals" },
       { icon: Wrench, label: "Interventions", href: "/dashboard/interventions" },
       { icon: BarChart3, label: "Statistiques", href: "/dashboard/stats" },
@@ -42,29 +66,31 @@ const DashboardLayout = ({ children, userRole = "super_admin" }: DashboardLayout
     admin: [
       { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard" },
       { icon: Users, label: "Utilisateurs", href: "/dashboard/users" },
-      { icon: Package, label: "Matériels", href: "/dashboard/equipment" },
+      { icon: Package, label: "Matériels", href: "/dashboard/stock" },
       { icon: Calendar, label: "Locations", href: "/dashboard/rentals" },
       { icon: Settings, label: "Paramètres", href: "/dashboard/settings" },
     ],
     stock_manager: [
-      { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard" },
+      { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard/stock-manager" },
       { icon: Package, label: "Stock", href: "/dashboard/stock" },
       { icon: Calendar, label: "Planning", href: "/dashboard/planning" },
       { icon: Wrench, label: "Maintenance", href: "/dashboard/maintenance" },
     ],
     technician: [
-      { icon: LayoutDashboard, label: "Missions", href: "/dashboard" },
+      { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard/technician" },
       { icon: Calendar, label: "Planning", href: "/dashboard/planning" },
       { icon: Wrench, label: "Interventions", href: "/dashboard/interventions" },
+      { icon: BarChart3, label: "Statistiques", href: "/dashboard/stats" },
+      { icon: Settings, label: "Paramètres", href: "/dashboard/settings" },
     ],
     client: [
-      { icon: LayoutDashboard, label: "Accueil", href: "/dashboard" },
+      { icon: LayoutDashboard, label: "Accueil", href: "/dashboard/client" },
       { icon: ShoppingCart, label: "Catalogue", href: "/dashboard/catalog" },
       { icon: Calendar, label: "Mes locations", href: "/dashboard/my-rentals" },
       { icon: FileText, label: "Factures", href: "/dashboard/my-invoices" },
     ],
     accountant: [
-      { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard" },
+      { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard/accountant" },
       { icon: FileText, label: "Facturation", href: "/dashboard/invoices" },
       { icon: BarChart3, label: "États financiers", href: "/dashboard/finances" },
       { icon: Calendar, label: "Paiements", href: "/dashboard/payments" },
@@ -77,7 +103,7 @@ const DashboardLayout = ({ children, userRole = "super_admin" }: DashboardLayout
     super_admin: "Super Admin",
     admin: "Administrateur",
     stock_manager: "Gestionnaire Stock",
-    technician: "Technicien",
+    technician: " Technicien",
     client: "Client",
     accountant: "Comptabilité",
   };
@@ -85,7 +111,7 @@ const DashboardLayout = ({ children, userRole = "super_admin" }: DashboardLayout
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside 
+      <aside
         className={cn(
           "fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground transition-all duration-300 z-50 flex flex-col",
           collapsed ? "w-20" : "w-64"
@@ -109,10 +135,18 @@ const DashboardLayout = ({ children, userRole = "super_admin" }: DashboardLayout
               <Link
                 key={index}
                 to={item.href}
+                onClick={(e) => {
+                  console.log('🔗 Navigation Click:', {
+                    from: location.pathname,
+                    to: item.href,
+                    label: item.label,
+                    userRole: userRole
+                  });
+                }}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all",
-                  isActive 
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
@@ -127,13 +161,14 @@ const DashboardLayout = ({ children, userRole = "super_admin" }: DashboardLayout
         <div className="p-4 border-t border-sidebar-border">
           {!collapsed && (
             <div className="mb-4 p-3 rounded-lg bg-sidebar-accent/50">
-              <p className="text-sm font-medium">Moussa Diallo</p>
+              <p className="text-sm font-medium truncate">{user?.user_metadata?.full_name || user?.email || "Utilisateur"}</p>
               <p className="text-xs text-sidebar-foreground/60">{roleLabels[userRole]}</p>
             </div>
           )}
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+            onClick={handleLogout}
           >
             <LogOut className="w-5 h-5" />
             {!collapsed && <span className="ml-3">Déconnexion</span>}
@@ -171,7 +206,11 @@ const DashboardLayout = ({ children, userRole = "super_admin" }: DashboardLayout
                 <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-destructive" />
               </button>
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <span className="text-sm font-semibold text-primary">MD</span>
+                <span className="text-sm font-semibold text-primary">
+                  {user?.user_metadata?.full_name
+                    ? user.user_metadata.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().substring(0, 2)
+                    : user?.email?.substring(0, 2).toUpperCase() || "UT"}
+                </span>
               </div>
             </div>
           </div>

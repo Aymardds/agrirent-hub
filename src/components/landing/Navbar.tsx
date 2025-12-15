@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Tractor } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { session } = useAuth();
 
   const navLinks = [
     { name: "Catalogue", href: "/catalogue" },
@@ -42,12 +44,20 @@ const Navbar = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login">
-              <Button variant="ghost">Connexion</Button>
-            </Link>
-            <Link to="/register">
-              <Button variant="hero">Commencer</Button>
-            </Link>
+            {session ? (
+              <Link to="/dashboard">
+                <Button variant="hero">Mon Tableau de bord</Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost">Connexion</Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="hero">Commencer</Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -74,16 +84,26 @@ const Navbar = () => {
                 </Link>
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
-                <Link to="/login">
-                  <Button variant="outline" className="w-full">
-                    Connexion
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button variant="hero" className="w-full">
-                    Commencer
-                  </Button>
-                </Link>
+                {session ? (
+                  <Link to="/dashboard">
+                    <Button variant="hero" className="w-full">
+                      Mon Tableau de bord
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/login">
+                      <Button variant="outline" className="w-full">
+                        Connexion
+                      </Button>
+                    </Link>
+                    <Link to="/register">
+                      <Button variant="hero" className="w-full">
+                        Commencer
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

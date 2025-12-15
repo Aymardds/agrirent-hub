@@ -1,18 +1,103 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import StatsCard from "@/components/dashboard/StatsCard";
-import { 
-  Users, 
-  Package, 
-  Calendar, 
-  CreditCard, 
+import {
+  Users,
+  Package,
+  Calendar,
+  CreditCard,
   TrendingUp,
   Clock,
   CheckCircle2,
   AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
+import { normalizeRole } from "@/lib/roleUtils";
+import { useEffect, useState } from "react";
+
+// Import role-specific dashboards
+import TechnicianDashboard from "./dashboard/TechnicianDashboard";
+import ClientDashboard from "./dashboard/ClientDashboard";
+import StockManagerDashboard from "./dashboard/StockManagerDashboard";
+import AccountantDashboard from "./dashboard/AccountantDashboard";
 
 const Dashboard = () => {
+  const { user, loading } = useAuth();
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+  // Detect if loading takes too long
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.error("Loading timeout - Authentication issue detected");
+        setLoadingTimeout(true);
+      }
+    }, 5000); // 5 seconds timeout
+
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  if (loading && !loadingTimeout) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadingTimeout) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center max-w-md p-6">
+          <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Erreur de connexion</h2>
+          <p className="text-muted-foreground mb-4">
+            La connexion à Supabase prend trop de temps. Vérifiez votre fichier .env et votre connexion internet.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Recharger la page
+          </Button>
+          <p className="text-sm text-muted-foreground mt-4">
+            Si le problème persiste, vérifiez la console (F12) pour plus de détails.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" />;
+
+  const role = normalizeRole(user.user_metadata?.role);
+
+  console.log('🎯 Dashboard Dispatcher - Rendering dashboard for role:', role);
+
+  // --- ROLE BASED CONTENT DISPATCHER ---
+  // Instead of redirecting to a different URL, we render the correct component directly.
+  // This keeps the URL as /dashboard while showing correct content.
+
+  if (role === 'technician') {
+    return <TechnicianDashboard />;
+  }
+
+  if (role === 'client') {
+    return <ClientDashboard />;
+  }
+
+  if (role === 'stock_manager') {
+    return <StockManagerDashboard />;
+  }
+
+  if (role === 'accountant') {
+    return <AccountantDashboard />;
+  }
+
+  // --- DEFAULT ADMIN / SUPER ADMIN DASHBOARD ---
+  // If role is super_admin, admin, or fallback (if enforced by ProtectedRoute)
+
   const stats = [
     {
       title: "Utilisateurs",
@@ -68,7 +153,7 @@ const Dashboard = () => {
   };
 
   return (
-    <DashboardLayout userRole="super_admin">
+    <DashboardLayout>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -77,7 +162,7 @@ const Dashboard = () => {
               Tableau de bord
             </h1>
             <p className="text-muted-foreground">
-              Bienvenue, Moussa. Voici un aperçu de votre activité.
+              Bienvenue dans l'espace d'administration.
             </p>
           </div>
           <div className="flex gap-3">
