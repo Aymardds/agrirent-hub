@@ -51,6 +51,23 @@ const Footer = () => {
               La plateforme digitale de référence pour la location et la gestion
               de matériel agricole en Afrique de l'Ouest.
             </p>
+
+            {/* Contact Information */}
+            <div className="mb-6 space-y-2">
+              <a
+                href="mailto:outiltech@grainotech.com"
+                className="block text-sm text-sidebar-foreground/70 hover:text-primary transition-colors"
+              >
+                📧 outiltech@grainotech.com
+              </a>
+              <a
+                href="tel:+2250777000000"
+                className="block text-sm text-sidebar-foreground/70 hover:text-primary transition-colors"
+              >
+                📞 +225 07 77 00 00 00
+              </a>
+            </div>
+
             <div className="flex gap-3">
               {socials.map((social, index) => (
                 <a
@@ -130,12 +147,34 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-sidebar-border flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sidebar-foreground/60 text-sm">
-            © 2024 OUTILTECH. Tous droits réservés.
-          </p>
-          <p className="text-sidebar-foreground/60 text-sm">
-            Fait avec ❤️ GRAINOTECH
+        <div className="pt-8 border-t border-sidebar-border">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+            <p className="text-sidebar-foreground/60 text-sm">
+              © 2024 OUTILTECH - Une solution{" "}
+              <a
+                href="https://www.grainotech.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-semibold"
+              >
+                Grainotech SAS
+              </a>
+            </p>
+            <p className="text-sidebar-foreground/60 text-sm">
+              Tous droits réservés.
+            </p>
+          </div>
+          <p className="text-sidebar-foreground/50 text-xs text-center">
+            Développé avec ❤️ par{" "}
+            <a
+              href="https://www.grainotech.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary transition-colors"
+            >
+              Grainotech
+            </a>{" "}
+            - Leader des solutions digitales pour l'agriculture en Afrique de l'Ouest
           </p>
         </div>
       </div>

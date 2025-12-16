@@ -47,7 +47,7 @@ const Hero = () => {
               prestations depuis une plateforme unique.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-10 animate-fade-up" style={{ animationDelay: "0.3s" }}>
+            <div className="flex flex-col sm:flex-row gap-4 mb-6 animate-fade-up" style={{ animationDelay: "0.3s" }}>
               <Link to="/register">
                 <Button variant="hero" size="xl" className="w-full sm:w-auto">
                   Démarrer gratuitement
@@ -59,6 +59,18 @@ const Hero = () => {
                 Voir la démo
               </Button>
             </div>
+
+            <p className="text-sm text-muted-foreground/60 mb-8 animate-fade-up" style={{ animationDelay: "0.35s" }}>
+              Propulsé par{" "}
+              <a
+                href="https://www.grainotech.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium"
+              >
+                Grainotech SAS
+              </a>
+            </p>
 
             <div className="flex flex-wrap gap-4 animate-fade-up" style={{ animationDelay: "0.4s" }}>
               {features.map((feature, index) => (

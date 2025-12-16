@@ -1,73 +1,95 @@
-# Welcome to your Lovable project
+# OUTILTECH
 
-## Project info
+> Une solution digitale de **Grainotech SAS**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🌾 À propos
 
-## How can I edit this code?
+**OUTILTECH** est la plateforme digitale de référence pour la location et la gestion de matériel agricole en Afrique de l'Ouest. Développée par **Grainotech SAS**, cette solution simplifie l'accès au matériel motorisé pour les agriculteurs, coopératives et prestataires techniques.
 
-There are several ways of editing your application.
+### 🎯 Fonctionnalités principales
 
-**Use Lovable**
+- 📋 **Catalogue de matériel** - Consultez et réservez du matériel agricole en ligne
+- 🚜 **Gestion de location** - Suivez vos locations en temps réel
+- 📦 **Gestion de stock** - Gérez l'inventaire de matériel disponible
+- 👥 **Multi-rôles** - Support pour clients, gestionnaires, techniciens et administrateurs
+- 💰 **Gestion financière** - Suivi des paiements et comptabilité
+- 🔧 **Suivi des interventions** - Gestion des maintenances et réparations
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 🏢 À propos de Grainotech SAS
 
-Changes made via Lovable will be committed automatically to this repo.
+[Grainotech](https://www.grainotech.com) est leader des solutions digitales pour l'agriculture en Afrique de l'Ouest. Nous développons des outils innovants pour moderniser et digitaliser le secteur agricole.
 
-**Use your preferred IDE**
+**Site web**: [www.grainotech.com](https://www.grainotech.com)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 Installation et développement
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prérequis
 
-Follow these steps:
+- Node.js & npm (recommandé: [installer avec nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
+- Compte Supabase pour la base de données
+
+### Installation locale
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Cloner le dépôt
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Naviguer dans le répertoire du projet
+cd agrirent-hub
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Installer les dépendances
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Configurer les variables d'environnement
+# Créer un fichier .env à la racine avec vos clés Supabase
+
+# Démarrer le serveur de développement
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Configuration
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Créez un fichier `.env` à la racine du projet avec les variables suivantes :
 
-**Use GitHub Codespaces**
+```env
+VITE_SUPABASE_URL=votre_url_supabase
+VITE_SUPABASE_ANON_KEY=votre_cle_supabase
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🛠️ Technologies utilisées
 
-## What technologies are used for this project?
+- **Frontend**: React + TypeScript + Vite
+- **UI**: shadcn/ui + Tailwind CSS
+- **Base de données**: Supabase (PostgreSQL)
+- **Authentification**: Supabase Auth
+- **Paiement**: CinetPay
+- **Stockage**: Supabase Storage
 
-This project is built with:
+## 📦 Structure du projet
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+├── src/
+│   ├── components/      # Composants React réutilisables
+│   ├── pages/          # Pages de l'application
+│   ├── contexts/       # Contextes React (Auth, etc.)
+│   ├── hooks/          # Custom hooks
+│   └── lib/            # Utilitaires et configuration
+├── public/             # Fichiers statiques
+└── supabase/          # Migrations et configurations Supabase
+```
 
-## How can I deploy this project?
+## 🤝 Support
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Pour toute question ou support technique, contactez:
+- **Email**: outiltech@grainotech.com
+- **Téléphone**: +225 07 77 00 00 00
+- **Website**: [www.grainotech.com](https://www.grainotech.com)
 
-## Can I connect a custom domain to my Lovable project?
+## 📄 Licence
 
-Yes, you can!
+© 2024 OUTILTECH - Grainotech SAS. Tous droits réservés.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+**Développé avec ❤️ par [Grainotech SAS](https://www.grainotech.com)**
+

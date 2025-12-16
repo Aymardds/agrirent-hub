@@ -1,0 +1,30 @@
+# Fichiers à ignorer lors du déploiement Vercel
+
+# Documentation locale
+*.md
+!README.md
+
+# Fichiers SQL
+*.sql
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environnement local
+.env.local
+.env.development
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx

@@ -1,19 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Tractor } from "lucide-react";
+import { Menu, X, Tractor, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { session } = useAuth();
-
-  const navLinks = [
-    { name: "Catalogue", href: "/catalogue" },
-    { name: "Services", href: "/services" },
-    { name: "Tarifs", href: "/pricing" },
-    { name: "Contact", href: "/contact" },
-  ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass">
@@ -31,15 +24,21 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.href}
-                className="text-muted-foreground hover:text-foreground transition-colors font-medium"
-              >
-                {link.name}
-              </Link>
-            ))}
+            <Link
+              to="/catalogue"
+              className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+            >
+              Catalogue
+            </Link>
+            <a
+              href="https://www.grainotech.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors font-medium flex items-center gap-1"
+            >
+              Grainotech
+              <ExternalLink className="w-4 h-4" />
+            </a>
           </div>
 
           {/* Desktop CTA */}
@@ -53,8 +52,8 @@ const Navbar = () => {
                 <Link to="/login">
                   <Button variant="ghost">Connexion</Button>
                 </Link>
-                <Link to="/register">
-                  <Button variant="hero">Commencer</Button>
+                <Link to="/catalogue">
+                  <Button variant="hero">Voir le Catalogue</Button>
                 </Link>
               </>
             )}
@@ -73,16 +72,23 @@ const Navbar = () => {
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border animate-fade-in">
             <div className="flex flex-col gap-4">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors font-medium py-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  {link.name}
-                </Link>
-              ))}
+              <Link
+                to="/catalogue"
+                className="text-muted-foreground hover:text-foreground transition-colors font-medium py-2"
+                onClick={() => setIsOpen(false)}
+              >
+                Catalogue
+              </Link>
+              <a
+                href="https://www.grainotech.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors font-medium py-2 flex items-center gap-1"
+                onClick={() => setIsOpen(false)}
+              >
+                Grainotech
+                <ExternalLink className="w-4 h-4" />
+              </a>
               <div className="flex flex-col gap-2 pt-4 border-t border-border">
                 {session ? (
                   <Link to="/dashboard">
@@ -97,9 +103,9 @@ const Navbar = () => {
                         Connexion
                       </Button>
                     </Link>
-                    <Link to="/register">
+                    <Link to="/catalogue">
                       <Button variant="hero" className="w-full">
-                        Commencer
+                        Voir le Catalogue
                       </Button>
                     </Link>
                   </>

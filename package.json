@@ -1,7 +1,10 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "outiltech",
+  "description": "Plateforme digitale de location de matériel agricole - Une solution Grainotech SAS",
+  "version": "1.0.0",
+  "author": "Grainotech SAS <outiltech@grainotech.com>",
+  "homepage": "https://www.grainotech.com",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

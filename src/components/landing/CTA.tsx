@@ -19,7 +19,7 @@ const CTA = () => {
                 Prêt à transformer votre gestion agricole ?
               </h2>
               <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
-                Rejoignez les centaines de professionnels qui utilisent OUTILTECH 
+                Rejoignez les centaines de professionnels qui utilisent OUTILTECH
                 pour optimiser leurs opérations et développer leur activité.
               </p>
 
@@ -38,19 +38,19 @@ const CTA = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center text-muted-foreground">
-                <a 
-                  href="tel:+221770000000" 
+                <a
+                  href="tel:+2250777000000"
                   className="flex items-center gap-2 hover:text-foreground transition-colors"
                 >
                   <Phone className="w-5 h-5" />
-                  <span>+221 77 000 00 00</span>
+                  <span>+225 07 77 00 00 00</span>
                 </a>
-                <a 
-                  href="mailto:contact@outiltech.sn" 
+                <a
+                  href="mailto:outiltech@grainotech.com"
                   className="flex items-center gap-2 hover:text-foreground transition-colors"
                 >
                   <Mail className="w-5 h-5" />
-                  <span>contact@outiltech.sn</span>
+                  <span>outiltech@grainotech.com</span>
                 </a>
               </div>
             </div>
