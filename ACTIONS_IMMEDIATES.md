@@ -43,17 +43,16 @@ http://localhost:5173/reset-password
 
 ---
 
-### 3. Exécuter le Script SQL
+### 3. Exécuter les Scripts SQL
 
 1. Dans le menu gauche, cliquez sur **SQL Editor**
 2. Cliquez sur **New query**
-3. Ouvrez le fichier `supabase_email_auth_setup.sql` dans votre éditeur
-4. Copiez TOUT le contenu
-5. Collez dans l'éditeur SQL Supabase
-6. Cliquez sur **Run** (ou Ctrl/Cmd + Enter)
-7. Vérifiez qu'il n'y a pas d'erreurs (vous devriez voir "Success")
+3. Ouvrez le fichier `supabase_email_auth_setup.sql`, copiez le contenu et exécutez-le.
+4. **IMPORTANT** : Ouvrez ensuite le fichier `admin_dashboard_permissions.sql`, copiez le contenu et exécutez-le également.
+   - Ce script est nécessaire pour que le tableau de bord affiche les données (sinon vous verrez des zéros).
+5. Vérifiez qu'il n'y a pas d'erreurs.
 
-✅ **Checkpoint** : Le script SQL est exécuté
+✅ **Checkpoint** : Les scripts SQL sont exécutés
 
 ---
 

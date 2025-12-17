@@ -23,11 +23,10 @@
   ```
 - [ ] Cliquer sur **Save**
 
-#### 1.3 Exécuter le Script SQL
+#### 1.3 Exécuter les Scripts SQL
 - [ ] Aller dans **SQL Editor**
-- [ ] Créer une nouvelle requête
-- [ ] Copier le contenu de `supabase_email_auth_setup.sql`
-- [ ] Exécuter le script
+- [ ] Exécuter `supabase_email_auth_setup.sql`
+- [ ] Exécuter `admin_dashboard_permissions.sql` (Crucial pour le dashboard)
 - [ ] Vérifier qu'il n'y a pas d'erreurs
 
 #### 1.4 Configurer les Templates d'Email
