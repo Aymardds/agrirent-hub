@@ -103,7 +103,7 @@ export const useRecentRentals = (limit = 4) => {
           equipment:equipment_id (
             id,
             name,
-            type
+            category
           ),
           client:renter_id (
             id,
