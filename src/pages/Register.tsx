@@ -1,14 +1,22 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Tractor, Mail, Lock, Eye, EyeOff, ArrowRight, User, Phone, Building } from "lucide-react";
+import { Tractor, Mail, Lock, Eye, EyeOff, ArrowRight, User, Phone, Building, CheckCircle2, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import {
+  emailConfig,
+  validatePassword,
+  calculatePasswordStrength,
+  getPasswordStrengthLabel
+} from "@/lib/emailConfig";
 
 const Register = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [passwordStrength, setPasswordStrength] = useState(0);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -18,15 +26,36 @@ const Register = () => {
     userType: "client",
   });
 
+  const handlePasswordChange = (password: string) => {
+    setFormData({ ...formData, password });
+
+    // Valider le mot de passe
+    const validation = validatePassword(password);
+    setPasswordErrors(validation.errors);
+
+    // Calculer la force
+    const strength = calculatePasswordStrength(password);
+    setPasswordStrength(strength);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Valider le mot de passe avant soumission
+    const validation = validatePassword(formData.password);
+    if (!validation.isValid) {
+      toast.error("Le mot de passe ne respecte pas les critères de sécurité");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo: emailConfig.confirmationRedirectUrl,
           data: {
             full_name: formData.name,
             phone: formData.phone,
@@ -38,10 +67,28 @@ const Register = () => {
 
       if (error) throw error;
 
-      toast.success("Compte créé avec succès ! Veuillez vérifier votre email.");
-      navigate("/login");
+      // Vérifier si l'email doit être confirmé
+      if (data?.user && !data.user.confirmed_at) {
+        toast.success(
+          "Compte créé ! Un email de confirmation a été envoyé à " + formData.email,
+          { duration: 5000 }
+        );
+        navigate("/verify-email");
+      } else {
+        toast.success("Compte créé avec succès !");
+        navigate("/dashboard");
+      }
     } catch (error: any) {
-      toast.error(error.message || "Une erreur est survenue lors de l'inscription");
+      console.error("Erreur d'inscription:", error);
+
+      // Gestion des erreurs spécifiques
+      if (error.message?.includes("already registered")) {
+        toast.error("Cette adresse email est déjà utilisée");
+      } else if (error.message?.includes("password")) {
+        toast.error("Le mot de passe ne respecte pas les critères requis");
+      } else {
+        toast.error(error.message || "Une erreur est survenue lors de l'inscription");
+      }
     } finally {
       setLoading(false);
     }
@@ -206,7 +253,7 @@ const Register = () => {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) => handlePasswordChange(e.target.value)}
                   placeholder="••••••••"
                   className="w-full h-12 pl-12 pr-12 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   required
@@ -219,6 +266,53 @@ const Register = () => {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+
+              {/* Indicateur de force du mot de passe */}
+              {formData.password && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Force du mot de passe</span>
+                    <span className={getPasswordStrengthLabel(passwordStrength).color + " font-medium"}>
+                      {getPasswordStrengthLabel(passwordStrength).label}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${passwordStrength < 30
+                          ? "bg-red-500"
+                          : passwordStrength < 50
+                            ? "bg-orange-500"
+                            : passwordStrength < 70
+                              ? "bg-yellow-500"
+                              : passwordStrength < 90
+                                ? "bg-green-500"
+                                : "bg-emerald-500"
+                        }`}
+                      style={{ width: `${passwordStrength}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Messages d'erreur de validation */}
+              {passwordErrors.length > 0 && formData.password && (
+                <div className="mt-3 space-y-1">
+                  {passwordErrors.map((error, index) => (
+                    <div key={index} className="flex items-start gap-2 text-xs text-destructive">
+                      <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Critères de validation (affichés quand le mot de passe est valide) */}
+              {formData.password && passwordErrors.length === 0 && (
+                <div className="mt-3 flex items-center gap-2 text-xs text-green-600">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Tous les critères de sécurité sont respectés</span>
+                </div>
+              )}
             </div>
 
             <label className="flex items-start gap-2 cursor-pointer">

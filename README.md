@@ -14,6 +14,19 @@
 - 👥 **Multi-rôles** - Support pour clients, gestionnaires, techniciens et administrateurs
 - 💰 **Gestion financière** - Suivi des paiements et comptabilité
 - 🔧 **Suivi des interventions** - Gestion des maintenances et réparations
+- 🔐 **Authentification sécurisée** - Confirmation par email, validation de mot de passe renforcée
+
+### ✨ Nouveautés - Authentification Optimisée
+
+Notre système d'authentification a été entièrement optimisé pour offrir une sécurité maximale :
+
+- ✅ **Confirmation par email automatique** - Vérification de l'adresse email après inscription
+- ✅ **Validation de mot de passe renforcée** - Indicateur de force en temps réel avec 5 critères de sécurité
+- ✅ **Réinitialisation sécurisée** - Processus complet de récupération de mot de passe
+- ✅ **Interface intuitive** - Design moderne avec feedback visuel instantané
+- ✅ **Sécurité renforcée** - Protection contre les attaques courantes
+
+📖 **Documentation complète** : Consultez [AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md) pour plus de détails.
 
 ## 🏢 À propos de Grainotech SAS
 

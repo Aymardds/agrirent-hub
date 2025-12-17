@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Tractor, Mail, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Tractor, Mail, ArrowRight, CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { emailConfig } from "@/lib/emailConfig";
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState("");
@@ -17,13 +18,13 @@ const ForgotPassword = () => {
 
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/update-password`,
+                redirectTo: emailConfig.resetPasswordRedirectUrl,
             });
 
             if (error) throw error;
 
             setSubmitted(true);
-            toast.success("Email envoyé avec succès !");
+            toast.success("Email de réinitialisation envoyé !");
         } catch (error: any) {
             toast.error(error.message || "Une erreur est survenue");
         } finally {
