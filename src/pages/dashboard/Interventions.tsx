@@ -315,7 +315,7 @@ const Interventions = () => {
                                                     <div className="space-y-3 w-full">
                                                         <GPSTracker
                                                             isActive={true}
-                                                            initialPath={task.gps_path}
+                                                            initialPath={task.gps_path || []}
                                                             onSave={(path, area) => saveGPSData(task.id, path, area)}
                                                         />
 

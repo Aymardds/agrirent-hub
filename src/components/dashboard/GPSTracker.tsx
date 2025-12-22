@@ -18,7 +18,7 @@ interface GPSTrackerProps {
 
 export const GPSTracker = ({ isActive, onSave, initialPath = [] }: GPSTrackerProps) => {
     const [isTracking, setIsTracking] = useState(false);
-    const [path, setPath] = useState<GPSPoint[]>(initialPath);
+    const [path, setPath] = useState<GPSPoint[]>(initialPath || []);
     const [area, setArea] = useState<number>(0);
     const watchId = useRef<number | null>(null);
 
