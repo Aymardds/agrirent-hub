@@ -46,6 +46,7 @@ const StockManagerDashboard = () => {
         maintenance: 0,
     });
     const [pendingReturns, setPendingReturns] = useState<any[]>([]);
+    const [pendingRentals, setPendingRentals] = useState<any[]>([]);
 
     // Form States
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -106,7 +107,15 @@ const StockManagerDashboard = () => {
 
             setPendingReturns(returns || []);
 
-            // 3. Fetch Technicians for assignment
+            // 3. Fetch Pending Rentals (New Requests)
+            const { data: rentals } = await supabase
+                .from("rentals")
+                .select("*, equipment(name, id, location), renter:renter_id(full_name, phone)")
+                .eq('status', 'pending');
+
+            setPendingRentals(rentals || []);
+
+            // 4. Fetch Technicians for assignment
             const { data: techs } = await supabase
                 .from("profiles")
                 .select("*")
@@ -117,6 +126,52 @@ const StockManagerDashboard = () => {
             console.error("Error fetching data", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleApproveRental = async (rental: any, technicianId: string) => {
+        try {
+            if (!technicianId) {
+                toast.error("Veuillez choisir un technicien");
+                return;
+            }
+
+            // 1. Create Intervention for the Technician
+            const { error: intError } = await supabase.from("interventions").insert([{
+                title: `Mission: ${rental.equipment.name} (${rental.renter.full_name})`,
+                description: `Client: ${rental.renter.full_name}\nLieu: ${rental.equipment.location}\nDates: ${rental.start_date} au ${rental.end_date}\nMontant: ${rental.total_price}`,
+                priority: 'high',
+                status: 'pending',
+                equipment_id: rental.equipment.id,
+                technician_id: technicianId,
+                created_at: new Date().toISOString()
+            }]);
+
+            if (intError) throw intError;
+
+            // 2. Update Rental Status to Active & Payment to Paid (Simplification for workflow)
+            const { error: rentError } = await supabase
+                .from("rentals")
+                .update({
+                    status: 'active',
+                    payment_status: 'paid' // Assuming payment is handled or confirmed here
+                })
+                .eq('id', rental.id);
+
+            if (rentError) throw rentError;
+
+            // 3. Update Equipment Status to Rented
+            const { error: eqError } = await supabase
+                .from("equipment")
+                .update({ status: 'rented', available: false })
+                .eq('id', rental.equipment.id);
+
+            if (eqError) throw eqError;
+
+            toast.success("Demande approuvée et technicien assigné !");
+            fetchData();
+        } catch (error: any) {
+            toast.error("Erreur approbation: " + error.message);
         }
     };
 
@@ -451,6 +506,50 @@ const StockManagerDashboard = () => {
                     </div>
                 </div>
 
+                {/* Pending Rentals / Requests Section */}
+                {pendingRentals.length > 0 && (
+                    <Card className="border-blue-200 bg-blue-50 mb-6">
+                        <div className="p-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <AlertTriangle className="w-5 h-5 text-blue-600" />
+                                <h2 className="text-lg font-semibold text-blue-900">Demandes en Attente ({pendingRentals.length})</h2>
+                            </div>
+                            <div className="space-y-3">
+                                {pendingRentals.map((rental: any) => (
+                                    <div key={rental.id} className="bg-white p-4 rounded-lg border border-blue-100 flex flex-col md:flex-row justify-between items-center shadow-sm gap-4">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <Badge className="bg-blue-600">Nouvelle Demande</Badge>
+                                                <span className="font-bold text-foreground">{rental.equipment?.name}</span>
+                                            </div>
+                                            <p className="text-sm text-gray-600 mt-1">
+                                                Client: <span className="font-medium">{rental.renter?.full_name}</span> •
+                                                Dates: {rental.start_date} / {rental.end_date}
+                                            </p>
+                                            <p className="text-sm font-bold text-primary mt-1">
+                                                {rental.total_price.toLocaleString()} FCFA
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <Select onValueChange={(tId) => handleApproveRental(rental, tId)}>
+                                                <SelectTrigger className="w-[200px] border-blue-200">
+                                                    <SelectValue placeholder="Assigner Technicien" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {technicians.map((t: any) => (
+                                                        <SelectItem key={t.id} value={t.id}>{t.full_name || t.email}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </Card>
+                )}
+
                 {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <Card className="p-6">
@@ -515,9 +614,16 @@ const StockManagerDashboard = () => {
                                             <p className="text-sm text-muted-foreground">
                                                 Tech: {intervention.technician?.full_name || 'Inconnu'} • Mission: {intervention.title}
                                             </p>
-                                            <Badge variant="outline" className="mt-2 text-green-600 border-green-200 bg-green-50">
-                                                Terminé par technicien
-                                            </Badge>
+                                            <div className="flex gap-2 mt-2">
+                                                <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                                                    Terminé par technicien
+                                                </Badge>
+                                                {intervention.area_covered && (
+                                                    <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">
+                                                        Superficie: {intervention.area_covered.toFixed(4)} ha
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </div>
                                         <Button
                                             onClick={() => validateReturn(intervention.id, intervention.equipment?.id)}

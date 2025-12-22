@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import InterventionCalendar from "@/components/dashboard/InterventionCalendar";
+import { GPSTracker } from "@/components/dashboard/GPSTracker";
 
 interface Intervention {
     id: string;
@@ -19,6 +20,8 @@ interface Intervention {
     priority: "low" | "medium" | "high" | "critical";
     created_at: string;
     technician_id?: string;
+    gps_path?: any[];
+    area_covered?: number;
     equipment: {
         name: string;
         image_url?: string;
@@ -104,6 +107,24 @@ const Interventions = () => {
             fetchInterventions();
         } catch (error: any) {
             toast.error(error.message);
+        }
+    };
+
+    const saveGPSData = async (id: string, path: any[], area: number) => {
+        try {
+            const { error } = await supabase
+                .from("interventions")
+                .update({
+                    gps_path: path,
+                    area_covered: area
+                })
+                .eq("id", id);
+
+            if (error) throw error;
+            toast.success("Données GPS enregistrées !");
+            fetchInterventions();
+        } catch (error: any) {
+            toast.error("Erreur sauvegarde GPS: " + error.message);
         }
     };
 
@@ -291,10 +312,33 @@ const Interventions = () => {
                                                     </Button>
                                                 )}
                                                 {task.status === 'in_progress' && (
-                                                    <Button className="w-full bg-success hover:bg-success/90 text-white" onClick={() => updateInterventionStatus(task.id, 'completed', task.equipment_id)}>
-                                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                        Terminer
-                                                    </Button>
+                                                    <div className="space-y-3 w-full">
+                                                        <GPSTracker
+                                                            isActive={true}
+                                                            initialPath={task.gps_path}
+                                                            onSave={(path, area) => saveGPSData(task.id, path, area)}
+                                                        />
+
+                                                        {task.area_covered ? (
+                                                            <div className="text-center p-2 bg-success/10 rounded-md border border-success/20">
+                                                                <p className="text-xs text-muted-foreground">Area confirmée</p>
+                                                                <p className="font-bold text-success">{task.area_covered.toFixed(4)} ha</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-center p-2 text-xs text-amber-600 bg-amber-50 rounded border border-amber-200">
+                                                                Veuillez enregistrer la superficie via GPS avant de terminer
+                                                            </div>
+                                                        )}
+
+                                                        <Button
+                                                            className="w-full bg-success hover:bg-success/90 text-white"
+                                                            disabled={!task.area_covered && !isManager} // Require area for technicians
+                                                            onClick={() => updateInterventionStatus(task.id, 'completed', task.equipment_id)}
+                                                        >
+                                                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                            Terminer
+                                                        </Button>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

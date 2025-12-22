@@ -2,8 +2,15 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, TrendingUp, AlertTriangle } from "lucide-react";
+import { FileText, Download, TrendingUp, AlertTriangle, MoreVertical, CreditCard, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 import InvoiceDialog from "@/components/dashboard/InvoiceDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -59,6 +66,26 @@ const Accounting = () => {
     const pendingRevenue = transactions
         .filter(t => t.payment_status === 'pending')
         .reduce((sum, t) => sum + t.total_price, 0);
+
+    const updatePaymentStatus = async (rentalId: string, newStatus: 'paid' | 'pending') => {
+        try {
+            const { error } = await supabase
+                .from('rentals')
+                .update({ payment_status: newStatus })
+                .eq('id', rentalId);
+
+            if (error) throw error;
+
+            toast.success(`Statut mis à jour : ${newStatus === 'paid' ? 'Payé' : 'En attente'}`);
+
+            // Update local state
+            setTransactions(transactions.map(t =>
+                t.id === rentalId ? { ...t, payment_status: newStatus } : t
+            ));
+        } catch (error: any) {
+            toast.error("Erreur de mise à jour: " + error.message);
+        }
+    };
 
     const handleViewInvoice = (rental: Rental) => {
         setSelectedRental(rental);
@@ -147,6 +174,32 @@ const Accounting = () => {
                                             <Button size="icon" variant="ghost" onClick={() => handleViewInvoice(t)}>
                                                 <Download className="w-4 h-4 text-muted-foreground" />
                                             </Button>
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button size="icon" variant="ghost">
+                                                        <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    {t.payment_status === 'pending' && (
+                                                        <DropdownMenuItem onClick={() => updatePaymentStatus(t.id, 'paid')}>
+                                                            <CheckCircle className="w-4 h-4 mr-2 text-success" />
+                                                            Marquer comme Payé
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {t.payment_status === 'paid' && (
+                                                        <DropdownMenuItem onClick={() => updatePaymentStatus(t.id, 'pending')}>
+                                                            <AlertTriangle className="w-4 h-4 mr-2 text-warning" />
+                                                            Marquer comme En Attente
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    <DropdownMenuItem onClick={() => handleViewInvoice(t)}>
+                                                        <FileText className="w-4 h-4 mr-2" />
+                                                        Voir la facture
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </td>
                                     </tr>
                                 ))}
