@@ -279,14 +279,14 @@ const Register = () => {
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all duration-300 ${passwordStrength < 30
-                          ? "bg-red-500"
-                          : passwordStrength < 50
-                            ? "bg-orange-500"
-                            : passwordStrength < 70
-                              ? "bg-yellow-500"
-                              : passwordStrength < 90
-                                ? "bg-green-500"
-                                : "bg-emerald-500"
+                        ? "bg-red-500"
+                        : passwordStrength < 50
+                          ? "bg-orange-500"
+                          : passwordStrength < 70
+                            ? "bg-yellow-500"
+                            : passwordStrength < 90
+                              ? "bg-green-500"
+                              : "bg-emerald-500"
                         }`}
                       style={{ width: `${passwordStrength}%` }}
                     />

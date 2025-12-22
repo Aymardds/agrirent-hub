@@ -8,6 +8,18 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { BookingDialog } from "@/components/booking/BookingDialog";
 
+interface ServicePrice {
+  amount: number;
+  unit: string;
+}
+
+interface Service {
+  id: string;
+  name: string;
+  description: string;
+  prices: ServicePrice[];
+}
+
 interface Equipment {
   id: string;
   name: string;
@@ -20,6 +32,7 @@ interface Equipment {
   image_url: string;
   gallery: string[];
   specs: string[];
+  equipment_services?: Service[];
 }
 
 const Catalogue = () => {
@@ -42,7 +55,7 @@ const Catalogue = () => {
     try {
       let query = supabase
         .from("equipment")
-        .select("*")
+        .select("*, equipment_services(*)")
         .order("created_at", { ascending: false });
 
       if (selectedCategory !== "Tous") {

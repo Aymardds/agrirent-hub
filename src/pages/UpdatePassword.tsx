@@ -14,12 +14,47 @@ const UpdatePassword = () => {
 
     // Verify we have a session (Supabase handles this automatically via the link hash)
     useEffect(() => {
+        // Check initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
-                toast.error("Lien invalide ou expiré");
-                navigate("/login");
+            if (session) {
+                // We have a session, likely from the recovery link
+                console.log("Session found");
+            } else {
+                // No immediate session, check hash or wait for auth state change
+                const hash = window.location.hash;
+                if (!hash) {
+                    // No session and no hash -> invalid access
+                    toast.error("Accès non autorisé");
+                    navigate("/login");
+                    return;
+                }
+
+                // Check for errors in hash
+                if (hash.includes('error=')) {
+                    const params = new URLSearchParams(hash.substring(1)); // remove #
+                    const errorDescription = params.get('error_description');
+                    toast.error(errorDescription ? decodeURIComponent(errorDescription) : "Lien expiré ou invalide");
+                    navigate("/login");
+                }
             }
         });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log("Auth event:", event);
+            if (event === "PASSWORD_RECOVERY") {
+                // This is the specific event for password recovery
+                toast.info("Vous pouvez maintenant définir votre nouveau mot de passe");
+            } else if (event === "SIGNED_IN") {
+                // Also valid if just signed in via link
+            } else if (event === "SIGNED_OUT") {
+                // Only redirect if we clearly signed out and are not in the process of recovering
+                // navigate("/login");
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
     }, [navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {

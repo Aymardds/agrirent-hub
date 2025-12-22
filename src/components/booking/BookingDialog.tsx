@@ -10,6 +10,18 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 
+interface ServicePrice {
+    amount: number;
+    unit: string;
+}
+
+interface Service {
+    id: string;
+    name: string;
+    description: string;
+    prices: ServicePrice[];
+}
+
 interface BookingDialogProps {
     equipment: {
         id: string;
@@ -19,6 +31,7 @@ interface BookingDialogProps {
         service_type: string;
         image_url?: string;
         gallery?: string[];
+        equipment_services?: Service[];
     };
     trigger?: React.ReactNode;
 }
@@ -38,8 +51,22 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
     // Selected image from gallery (default to main image)
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+    // Service Selection Logic
+    const hasServices = equipment.equipment_services && equipment.equipment_services.length > 0;
+    const [selectedService, setSelectedService] = useState<Service | null>(null);
+    const [selectedPrice, setSelectedPrice] = useState<ServicePrice | null>(null);
+
+    // Initialize default service if available (run once when open or equip changes)
+    // We'll prioritize the base price if no service is explicitly forced, but here we let user choose.
+
+    // Determine the active price settings
+    const activePrice = hasServices && selectedPrice ? selectedPrice.amount : equipment.price;
+    const activeUnit = hasServices && selectedPrice ? selectedPrice.unit : equipment.price_unit;
+
     const isSale = equipment.service_type === 'vente';
-    const isDayRent = equipment.price_unit === 'Jour' && !isSale;
+    const isDayRent = activeUnit === 'Jour' && !isSale;
+    const isHourlyRent = activeUnit === 'Heure' && !isSale;
+    const isAreaRent = (activeUnit === 'Hectare' || activeUnit === 'Casier') && !isSale; // Covers Hecare, Casier, etc.
 
     const calculateTotal = () => {
         if (isSale) return equipment.price;
@@ -49,11 +76,11 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
             const start = new Date(startDate);
             const end = new Date(endDate);
             const days = differenceInDays(end, start) + 1;
-            return days > 0 ? days * equipment.price : 0;
+            return days > 0 ? days * activePrice : 0;
         }
 
-        // For Hour, Hectare, Padi
-        return quantity * equipment.price;
+        // For Hour, Hectare, Casier, Padi, Sac
+        return quantity * activePrice;
     };
 
     const handleAction = async () => {
@@ -65,6 +92,16 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
 
         if (isDayRent && (!startDate || !endDate)) {
             toast.error("Veuillez sélectionner les dates");
+            return;
+        }
+
+        if (hasServices && !selectedService) {
+            toast.error("Veuillez sélectionner un service");
+            return;
+        }
+
+        if (hasServices && !selectedPrice) {
+            toast.error("Veuillez sélectionner une option de tarif");
             return;
         }
 
@@ -114,6 +151,8 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
             case 'Heure': return 'Nombre d\'heures';
             case 'Hectare': return 'Nombre d\'hectares';
             case 'Padi': return 'Nombre de Padis';
+            case 'Casier': return 'Nombre de Casiers';
+            case 'Sac': return 'Nombre de Sacs';
             default: return 'Quantité';
         }
     };
@@ -180,6 +219,56 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
 
                     <div className="space-y-4">
                         {/* ... rest of the form */}
+                        {/* Service Selection */}
+                        {hasServices && (
+                            <div className="space-y-3 p-4 bg-muted/20 border rounded-lg">
+                                <Label className="text-base font-semibold">1. Choisissez un service</Label>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {equipment.equipment_services?.map((service) => (
+                                        <div
+                                            key={service.id}
+                                            onClick={() => {
+                                                setSelectedService(service);
+                                                setSelectedPrice(null); // Reset price when changing service
+                                            }}
+                                            className={`cursor-pointer p-3 rounded-md border-2 transition-all ${selectedService?.id === service.id
+                                                ? "border-primary bg-primary/5"
+                                                : "border-transparent bg-card hover:bg-muted"
+                                                }`}
+                                        >
+                                            <div className="font-medium">{service.name}</div>
+                                            {service.description && (
+                                                <div className="text-sm text-muted-foreground line-clamp-2">{service.description}</div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Price Selection for Service */}
+                        {hasServices && selectedService && (
+                            <div className="space-y-3 p-4 bg-muted/20 border rounded-lg animate-in fade-in slide-in-from-top-2">
+                                <Label className="text-base font-semibold">2. Choisissez une option tarifaire</Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {selectedService.prices.map((price, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => setSelectedPrice(price)}
+                                            className={`p-2 rounded-md border-2 text-sm transition-all ${selectedPrice === price
+                                                ? "border-primary bg-primary/5 font-medium"
+                                                : "border-border bg-card hover:border-primary/50"
+                                                }`}
+                                        >
+                                            <div className="text-primary">{price.amount.toLocaleString()} FCFA</div>
+                                            <div className="text-muted-foreground">/ {price.unit}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Date Selection for Daily Rental */}
                         {isDayRent && (
                             <div className="grid grid-cols-2 gap-4">
@@ -207,7 +296,7 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
                         {/* Quantity Input for Other Units (Hour, Hectare, Padi) */}
                         {!isDayRent && !isSale && (
                             <div className="space-y-2">
-                                <Label>{getUnitLabel(equipment.price_unit)}</Label>
+                                <Label>{getUnitLabel(activeUnit)}</Label>
                                 <div className="flex items-center gap-3">
                                     <Input
                                         type="number"
@@ -216,7 +305,7 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
                                         onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
                                     />
                                     <span className="text-muted-foreground whitespace-nowrap">
-                                        x {equipment.price.toLocaleString()} FCFA
+                                        x {activePrice.toLocaleString()} FCFA
                                     </span>
                                 </div>
                             </div>
@@ -226,7 +315,7 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
                         <div className="bg-muted p-4 rounded-lg space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span>Prix unitaire</span>
-                                <span>{equipment.price.toLocaleString()} FCFA {(!isSale && equipment.price_unit) ? `/ ${equipment.price_unit}` : ''}</span>
+                                <span>{activePrice.toLocaleString()} FCFA {(!isSale && activeUnit) ? `/ ${activeUnit}` : ''}</span>
                             </div>
 
                             {isDayRent && (

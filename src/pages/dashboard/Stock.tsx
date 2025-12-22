@@ -38,6 +38,18 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+interface ServicePrice {
+    amount: number;
+    unit: string;
+}
+
+interface Service {
+    id?: string;
+    name: string;
+    description: string;
+    prices: ServicePrice[];
+}
+
 interface Equipment {
     id: string;
     name: string;
@@ -51,6 +63,7 @@ interface Equipment {
     gallery: string[];
     status: "available" | "rented" | "maintenance";
     owner_id: string;
+    equipment_services?: Service[];
 }
 
 const Stock = () => {
@@ -78,6 +91,7 @@ const Stock = () => {
         description: "",
         image_url: "",
         gallery: [] as string[],
+        services: [] as Service[],
     };
     const [formData, setFormData] = useState(initialFormState);
 
@@ -92,7 +106,10 @@ const Stock = () => {
         if (!user) return;
         setLoading(true);
         try {
-            let query = supabase.from("equipment").select("*").order('created_at', { ascending: false });
+            let query = supabase
+                .from("equipment")
+                .select("*, equipment_services(*)")
+                .order('created_at', { ascending: false });
 
             // RLS handles permission, but we apply filter logic for non-admins just in case
             if (!canManage) {
@@ -150,21 +167,47 @@ const Stock = () => {
                 ...(isEditMode ? {} : { status: "available", available: true, specs: ["Standard"] })
             };
 
-            let error;
+            let equipmentId = currentId;
+
             if (isEditMode && currentId) {
                 const { error: updateError } = await supabase
                     .from("equipment")
                     .update(payload)
                     .eq('id', currentId);
-                error = updateError;
+
+                if (updateError) throw updateError;
             } else {
-                const { error: insertError } = await supabase
+                const { data: newEquipment, error: insertError } = await supabase
                     .from("equipment")
-                    .insert([payload]);
-                error = insertError;
+                    .insert([payload])
+                    .select()
+                    .single();
+
+                if (insertError) throw insertError;
+                equipmentId = newEquipment.id;
             }
 
-            if (error) throw error;
+            // Handle Services
+            if (equipmentId && formData.services) {
+                // First delete existing services to ensure clean state (simple sync)
+                // Note: In a production app with bookings linked to services, we'd need a smarter diff
+                await supabase.from("equipment_services").delete().eq("equipment_id", equipmentId);
+
+                if (formData.services.length > 0) {
+                    const servicesPayload = formData.services.map(s => ({
+                        equipment_id: equipmentId,
+                        name: s.name,
+                        description: s.description,
+                        prices: s.prices
+                    }));
+
+                    const { error: servicesError } = await supabase
+                        .from("equipment_services")
+                        .insert(servicesPayload);
+
+                    if (servicesError) throw servicesError;
+                }
+            }
 
             toast.success(isEditMode ? "Matériel modifié !" : "Matériel ajouté !");
             setIsDialogOpen(false);
@@ -200,6 +243,7 @@ const Stock = () => {
             description: item.description || "",
             image_url: item.image_url || "",
             gallery: item.gallery || [],
+            services: item.equipment_services || [],
         });
         setCurrentId(item.id);
         setIsEditMode(true);
@@ -221,6 +265,45 @@ const Stock = () => {
         available: "bg-success/10 text-success border-success/20",
         rented: "bg-blue-500/10 text-blue-500 border-blue-500/20",
         maintenance: "bg-destructive/10 text-destructive border-destructive/20",
+    };
+
+    const addService = () => {
+        setFormData({
+            ...formData,
+            services: [...formData.services, { name: "", description: "", prices: [] }]
+        });
+    };
+
+    const updateService = (index: number, field: keyof Service, value: any) => {
+        const newServices = [...formData.services];
+        newServices[index] = { ...newServices[index], [field]: value };
+        setFormData({ ...formData, services: newServices });
+    };
+
+    const removeService = (index: number) => {
+        const newServices = formData.services.filter((_, i) => i !== index);
+        setFormData({ ...formData, services: newServices });
+    };
+
+    const addPrice = (serviceIndex: number) => {
+        const newServices = [...formData.services];
+        newServices[serviceIndex].prices.push({ amount: 0, unit: "Hectare" });
+        setFormData({ ...formData, services: newServices });
+    };
+
+    const updatePrice = (serviceIndex: number, priceIndex: number, field: keyof ServicePrice, value: any) => {
+        const newServices = [...formData.services];
+        newServices[serviceIndex].prices[priceIndex] = {
+            ...newServices[serviceIndex].prices[priceIndex],
+            [field]: value
+        };
+        setFormData({ ...formData, services: newServices });
+    };
+
+    const removePrice = (serviceIndex: number, priceIndex: number) => {
+        const newServices = [...formData.services];
+        newServices[serviceIndex].prices = newServices[serviceIndex].prices.filter((_, i) => i !== priceIndex);
+        setFormData({ ...formData, services: newServices });
     };
 
     return (
@@ -403,6 +486,80 @@ const Stock = () => {
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 />
+                            </div>
+
+                            {/* SERVICES SECTION */}
+                            <div className="space-y-4 border-t pt-4">
+                                <div className="flex justify-between items-center">
+                                    <Label className="text-lg font-semibold">Services associés</Label>
+                                    <Button type="button" variant="outline" size="sm" onClick={addService}>
+                                        <Plus className="w-4 h-4 mr-2" /> Ajouter Service
+                                    </Button>
+                                </div>
+
+                                {formData.services.map((service, sIdx) => (
+                                    <div key={sIdx} className="border rounded-lg p-4 space-y-3 bg-muted/20 relative">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="absolute top-2 right-2 h-6 w-6 p-0 text-destructive"
+                                            onClick={() => removeService(sIdx)}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+
+                                        <div className="space-y-2">
+                                            <Label>Nom du service</Label>
+                                            <Input
+                                                value={service.name}
+                                                onChange={(e) => updateService(sIdx, 'name', e.target.value)}
+                                                placeholder="Ex: Labour profond"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Description</Label>
+                                            <Textarea
+                                                value={service.description}
+                                                onChange={(e) => updateService(sIdx, 'description', e.target.value)}
+                                                placeholder="Description du service..."
+                                                className="h-20"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label>Tarifs</Label>
+                                            {service.prices.map((price, pIdx) => (
+                                                <div key={pIdx} className="flex gap-2 items-center">
+                                                    <Input
+                                                        type="number"
+                                                        value={price.amount}
+                                                        onChange={(e) => updatePrice(sIdx, pIdx, 'amount', parseFloat(e.target.value))}
+                                                        className="w-32"
+                                                        placeholder="Prix"
+                                                    />
+                                                    <select
+                                                        className="h-10 rounded-md border border-input bg-background px-3 flex-1"
+                                                        value={price.unit}
+                                                        onChange={(e) => updatePrice(sIdx, pIdx, 'unit', e.target.value)}
+                                                    >
+                                                        <option value="Hectare">/ Hectare</option>
+                                                        <option value="Casier">/ Casier</option>
+                                                        <option value="Sac">/ Sac</option>
+                                                        <option value="Heure">/ Heure</option>
+                                                        <option value="Jour">/ Jour</option>
+                                                    </select>
+                                                    <Button type="button" variant="ghost" size="sm" onClick={() => removePrice(sIdx, pIdx)}>
+                                                        <Trash2 className="w-4 h-4 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                            <Button type="button" variant="secondary" size="sm" className="w-full" onClick={() => addPrice(sIdx)}>
+                                                <Plus className="w-3 h-3 mr-2" /> Ajouter Tarif
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                         <DialogFooter>
