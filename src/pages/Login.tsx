@@ -27,7 +27,38 @@ const Login = () => {
       toast.success("Connexion réussie !");
       navigate("/dashboard");
     } catch (error: any) {
-      toast.error(error.message || "Une erreur est survenue lors de la connexion");
+      console.error("Login error details:", {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        error: error
+      });
+
+      if (error.message?.includes("Email not confirmed")) {
+        toast.error("Veuillez confirmer votre email avant de vous connecter.", {
+          duration: 5000,
+          action: {
+            label: "Renvoyer",
+            onClick: async () => {
+              await supabase.auth.resend({
+                type: 'signup',
+                email: email,
+                options: {
+                  emailRedirectTo: `${window.location.origin}/verify-email`
+                }
+              });
+              toast.success("Email de confirmation renvoyé !");
+            }
+          }
+        });
+      } else if (error.message?.includes("Invalid login credentials")) {
+        toast.error("Email ou mot de passe incorrect.");
+      } else {
+        // Detailed error for "Unable to process request" or other generic errors
+        const errorMsg = error.message || "Une erreur est survenue lors de la connexion";
+        const errorStatus = error.status ? ` (Status: ${error.status})` : "";
+        toast.error(`${errorMsg}${errorStatus}. Veuillez vérifier votre connexion ou contacter un administrateur.`);
+      }
     } finally {
       setLoading(false);
     }

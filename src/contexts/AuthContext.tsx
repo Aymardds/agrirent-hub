@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             })
             .catch((error) => {
                 console.error('❌ AuthContext: getSession ERROR', error);
-                setLoading(false); // Important: stop loading even on error!
+                setLoading(false);
             });
 
         // Listen for changes on auth state (logged in, signed out, etc.)
