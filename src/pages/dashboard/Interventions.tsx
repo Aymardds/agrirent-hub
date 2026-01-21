@@ -19,6 +19,7 @@ interface Intervention {
     status: "pending" | "in_progress" | "completed" | "cancelled";
     priority: "low" | "medium" | "high" | "critical";
     created_at: string;
+    scheduled_date?: string;
     technician_id?: string;
     gps_path?: any[];
     area_covered?: number;
@@ -301,6 +302,12 @@ const Interventions = () => {
                                                         <Clock className="w-3 h-3" />
                                                         Créé le {new Date(task.created_at).toLocaleDateString()}
                                                     </span>
+                                                    {task.scheduled_date && (
+                                                        <span className="flex items-center gap-1 text-primary font-medium">
+                                                            <CalendarIcon className="w-3 h-3" />
+                                                            Prévu le {new Date(task.scheduled_date).toLocaleString()}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -349,7 +356,14 @@ const Interventions = () => {
                     </TabsContent>
 
                     <TabsContent value="planning" className="mt-6">
-                        <InterventionCalendar interventions={interventions} />
+                        <InterventionCalendar
+                            interventions={interventions}
+                            onDayClick={isManager ? (day) => {
+                                // We could redirect to Planning or open a dialog here
+                                // For simplicity, let's just show it. 
+                                // Actually, Planning page is better for management.
+                            } : undefined}
+                        />
                     </TabsContent>
 
                     <TabsContent value="history" className="mt-6">

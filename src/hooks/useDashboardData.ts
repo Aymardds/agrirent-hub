@@ -20,7 +20,7 @@ export const useDashboardStats = () => {
                 .from("equipment")
                 .select("*", { count: "exact", head: true });
 
-            if (equipmentError) throw equipmentError;
+            if (equipmentCount === null && equipmentError) throw equipmentError;
 
             // Récupérer les locations actives
             const { count: activeRentalsCount, error: rentalsError } = await supabase
@@ -29,6 +29,38 @@ export const useDashboardStats = () => {
                 .eq("status", "active");
 
             if (rentalsError) throw rentalsError;
+
+            // Récupérer toutes les transactions terminées (payées ou complétées) pour les stats globales
+            const { data: allTransactions, error: transactionsError } = await supabase
+                .from("rentals")
+                .select(`
+                    total_price,
+                    status,
+                    equipment!inner (
+                        service_type
+                    )
+                `)
+                .eq("status", "completed");
+
+            if (transactionsError) throw transactionsError;
+
+            // Calculer les métriques globales
+            let completedRentals = 0;
+            let completedSales = 0;
+            let totalRevenue = 0;
+
+            allTransactions?.forEach((t: any) => {
+                const serviceType = t.equipment?.service_type || "location";
+                const price = t.total_price || 0;
+                totalRevenue += price;
+
+                if (serviceType === "vente") {
+                    completedSales++;
+                } else {
+                    completedRentals++;
+                }
+            });
+
 
             // Calculer les revenus du mois en cours
             const startOfMonth = new Date();
@@ -77,6 +109,9 @@ export const useDashboardStats = () => {
                 activeRentalsCount: activeRentalsCount || 0,
                 monthlyRevenue,
                 revenueChange,
+                completedRentals,
+                completedSales,
+                totalRevenue,
             };
         },
         staleTime: 1000 * 60 * 5, // 5 minutes

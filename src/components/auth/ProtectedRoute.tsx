@@ -8,63 +8,43 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-    const { session, user, loading } = useAuth();
+    const { session, profile, loading } = useAuth();
     const location = useLocation();
 
     console.log('🛡️ ProtectedRoute Check:', {
         path: location.pathname,
         loading,
         hasSession: !!session,
-        hasUser: !!user,
+        role: profile?.role,
         allowedRoles,
-        rawRole: user?.user_metadata?.role
     });
 
     if (loading) {
-        console.log('⏳ ProtectedRoute: Still loading...');
         return <div className="h-screen flex items-center justify-center">Chargement...</div>;
     }
 
     if (!session) {
-        console.log('❌ ProtectedRoute: No session, redirecting to /login');
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
-    if (allowedRoles && user) {
-        const userRole = normalizeRole(user.user_metadata?.role);
-
-        console.log('🔐 ProtectedRoute: Role check:', {
-            path: location.pathname,
-            userRole,
-            allowedRoles,
-            isSuperAdmin: userRole === 'super_admin',
-            isAllowed: allowedRoles.includes(userRole || '')
-        });
+    if (allowedRoles) {
+        // Fallback to JWT role only if profile is not yet available, 
+        // but AuthContext now ensures profile is loaded or failed before loading=false
+        const userRole = normalizeRole(profile?.role || undefined);
 
         // Super admin has access to everything
         if (userRole === 'super_admin') {
-            console.log('✅ ProtectedRoute: Super admin access granted');
-            return <>{children}</>;
-        }
-
-        // Check if normalized role is allowed
-        if (!userRole) {
-            console.warn('⚠️ ProtectedRoute: Role missing, FORCING super_admin for development!');
-            // TEMPORARY FIX: Allow access as super_admin if role is missing
             return <>{children}</>;
         }
 
         if (!userRole || !allowedRoles.includes(userRole)) {
-            console.log('⛔ ProtectedRoute: Access DENIED, redirecting to /dashboard', {
+            console.log('⛔ ProtectedRoute: Access DENIED', {
                 userRole,
                 allowedRoles,
                 currentPath: location.pathname
             });
-            // This is causing the loop!
             return <Navigate to="/dashboard" replace />;
         }
-
-        console.log('✅ ProtectedRoute: Access granted');
     }
 
     return <>{children}</>;

@@ -30,6 +30,7 @@ import StockManagerDashboard from "./pages/dashboard/StockManagerDashboard";
 import AccountantDashboard from "./pages/dashboard/AccountantDashboard";
 import DebugRole from "./pages/dashboard/DebugRole";
 import ConnectionTest from "./pages/ConnectionTest";
+import NetworkDiagnostic from "./pages/NetworkDiagnostic";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/connection-test" element={<ConnectionTest />} />
+            <Route path="/network-diagnostic" element={<NetworkDiagnostic />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/update-password" element={<UpdatePassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
@@ -59,12 +61,12 @@ const App = () => (
             } />
 
             <Route path="/dashboard/equipment" element={
-              <ProtectedRoute allowedRoles={['client', 'stock_manager', 'admin', 'super_admin']}>
+              <ProtectedRoute allowedRoles={['client', 'stock_manager', 'admin', 'super_admin', 'cooperative', 'provider']}>
                 <Stock />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/rentals" element={
-              <ProtectedRoute allowedRoles={['client', 'stock_manager', 'admin', 'super_admin']}>
+              <ProtectedRoute allowedRoles={['client', 'stock_manager', 'admin', 'super_admin', 'cooperative', 'provider']}>
                 <MyRentals />
               </ProtectedRoute>
             } />
@@ -109,7 +111,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/dashboard/my-rentals" element={
-              <ProtectedRoute allowedRoles={['client', 'stock_manager', 'admin', 'super_admin']}>
+              <ProtectedRoute allowedRoles={['client', 'stock_manager', 'admin', 'super_admin', 'cooperative', 'provider']}>
                 <MyRentals />
               </ProtectedRoute>
             } />
@@ -119,7 +121,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/dashboard/my-invoices" element={
-              <ProtectedRoute allowedRoles={['client', 'stock_manager', 'admin', 'super_admin']}>
+              <ProtectedRoute allowedRoles={['client', 'stock_manager', 'admin', 'super_admin', 'cooperative', 'provider']}>
                 <MyRentals />
               </ProtectedRoute>
             } />
@@ -154,7 +156,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/dashboard/settings" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'technician', 'stock_manager', 'client', 'accountant']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'technician', 'stock_manager', 'client', 'accountant', 'cooperative', 'provider']}>
                 <Settings />
               </ProtectedRoute>
             } />

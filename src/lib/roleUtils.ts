@@ -21,6 +21,8 @@ export const normalizeRole = (role: string | undefined): string | null => {
         'technician': 'technician',
         'technicien': 'technician',
         'client': 'client',
+        'cooperative': 'cooperative',
+        'provider': 'provider',
         'accountant': 'accountant',
         'comptable': 'accountant',
     };
@@ -29,4 +31,4 @@ export const normalizeRole = (role: string | undefined): string | null => {
     return mappings[clean] || mappings[clean.replace(/ /g, '_')] || clean.replace(/ /g, '_');
 };
 
-export type UserRole = 'super_admin' | 'admin' | 'stock_manager' | 'technician' | 'client' | 'accountant';
+export type UserRole = 'super_admin' | 'admin' | 'stock_manager' | 'technician' | 'client' | 'accountant' | 'cooperative' | 'provider';
