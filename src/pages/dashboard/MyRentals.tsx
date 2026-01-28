@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Calendar, CheckCircle2, XCircle, Clock, FileText, CreditCard, Wallet } from "lucide-react";
+import { Calendar, CheckCircle2, XCircle, Clock, FileText, CreditCard, Wallet, Home, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RentalCalendar from "@/components/dashboard/RentalCalendar";
 import InvoiceDialog from "@/components/dashboard/InvoiceDialog";
@@ -19,7 +19,12 @@ interface Rental {
     total_price: number;
     status: "pending" | "active" | "completed" | "cancelled";
     payment_status: "pending" | "paid" | "failed";
+    prestation_type?: string;
     invoice_number?: string;
+    properties?: {
+        name: string;
+        unit?: string;
+    };
     equipment: {
         name: string;
         image_url: string;
@@ -30,6 +35,13 @@ interface Rental {
         full_name: string;
         phone: string;
     };
+    interventions?: {
+        technician?: {
+            full_name: string;
+        };
+        area_covered?: number;
+        created_at?: string;
+    }[];
 }
 
 const MyRentals = () => {
@@ -49,6 +61,9 @@ const MyRentals = () => {
             let query = supabase.from("rentals").select(`
         *,
         equipment (name, image_url, location, owner_id),
+        properties (name, unit),
+        interventions (technician:technician_id (full_name), area_covered, created_at),
+        prestation_type,
         renter:renter_id (full_name, phone)
       `);
 
@@ -152,15 +167,15 @@ const MyRentals = () => {
             <div className="space-y-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold font-display">Gestion des Locations</h1>
-                        <p className="text-muted-foreground">Suivez vos locations, paiements et planning</p>
+                        <h1 className="text-2xl font-bold font-display">Gestion des Prestations</h1>
+                        <p className="text-muted-foreground">Suivez vos prestations, paiements et planning</p>
                     </div>
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="grid w-full max-w-md grid-cols-3">
-                        <TabsTrigger value="tenant">Locataire</TabsTrigger>
-                        <TabsTrigger value="owner">Propriétaire</TabsTrigger>
+                        <TabsTrigger value="tenant">Prestations</TabsTrigger>
+                        <TabsTrigger value="owner">Mission exécutée par</TabsTrigger>
                         <TabsTrigger value="planning">Planning</TabsTrigger>
                     </TabsList>
 
@@ -175,7 +190,7 @@ const MyRentals = () => {
                             ) : rentals.length === 0 ? (
                                 <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed border-border">
                                     <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                    <h3 className="text-lg font-medium">Aucune location trouvée</h3>
+                                    <h3 className="text-lg font-medium">Aucune prestation trouvée</h3>
                                     <p className="text-muted-foreground">Aucune donnée à afficher pour le moment.</p>
                                 </div>
                             ) : (
@@ -189,15 +204,52 @@ const MyRentals = () => {
                                                         🚜
                                                     </div>
                                                     <div>
-                                                        <h3 className="font-semibold text-lg text-foreground mb-1">{rental.equipment.name}</h3>
+                                                        <h3 className="font-semibold text-lg text-foreground mb-1">
+                                                            {rental.prestation_type ? `Service: ${rental.prestation_type}` : rental.equipment.name}
+                                                        </h3>
                                                         <div className="flex flex-col text-sm text-muted-foreground gap-1">
                                                             <div className="flex items-center gap-2">
                                                                 <Calendar className="w-4 h-4" />
                                                                 <span>{rental.start_date} - {rental.end_date}</span>
                                                             </div>
+                                                            {rental.properties && (
+                                                                <div className="flex items-center gap-2 font-medium text-primary">
+                                                                    <Home className="w-4 h-4" />
+                                                                    <span>Propriété: {rental.properties.name}</span>
+                                                                </div>
+                                                            )}
+                                                            {activeTab === "owner" && rental.interventions && rental.interventions.length > 0 && (
+                                                                <div className="flex flex-col gap-3 mt-3 w-full">
+                                                                    {rental.interventions.map((intervention: any, idx: number) => (
+                                                                        <div key={idx} className="bg-muted/30 p-3 rounded-lg border border-border/50 text-sm">
+                                                                            <div className="font-semibold text-primary mb-1">
+                                                                                Mission exécutée par: {intervention.technician?.full_name || "Non assigné"}
+                                                                            </div>
+                                                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <Calendar className="w-3 h-3" />
+                                                                                    <span>{new Date(intervention.created_at).toLocaleDateString()}</span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <MapPin className="w-3 h-3" />
+                                                                                    <span>{rental.properties?.name || "Propriété inconnue"}</span>
+                                                                                </div>
+                                                                                {intervention.area_covered && (
+                                                                                    <div className="col-span-2 font-medium text-foreground flex items-center gap-1 mt-1">
+                                                                                        <CheckCircle2 className="w-3 h-3 text-success" />
+                                                                                        <span>
+                                                                                            Superficie: {intervention.area_covered} {rental.properties?.unit === 'casiers' ? 'casiers' : 'ha'}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                             {activeTab === "owner" && rental.renter && (
-                                                                <span className="text-primary font-medium">
-                                                                    Locataire: {rental.renter.full_name} ({rental.renter.phone})
+                                                                <span className="text-muted-foreground text-xs mt-1">
+                                                                    Client: {rental.renter.full_name}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -258,7 +310,7 @@ const MyRentals = () => {
                                                         )}
                                                         {rental.status === "active" && (
                                                             <Button size="sm" variant="default" onClick={() => updateStatus(rental.id, 'completed')}>
-                                                                Terminer Location
+                                                                Terminer Prestation
                                                             </Button>
                                                         )}
                                                     </>

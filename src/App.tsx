@@ -11,6 +11,8 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import MyEquipment from "./pages/dashboard/MyEquipment";
 import MyRentals from "./pages/dashboard/MyRentals";
+import MyInvoices from "./pages/dashboard/MyInvoices";
+import Properties from "./pages/dashboard/Properties";
 import UsersList from "./pages/dashboard/UsersList";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -115,6 +117,11 @@ const App = () => (
                 <MyRentals />
               </ProtectedRoute>
             } />
+            <Route path="/dashboard/properties" element={
+              <ProtectedRoute allowedRoles={['client', 'cooperative', 'super_admin']}>
+                <Properties />
+              </ProtectedRoute>
+            } />
             <Route path="/dashboard/catalog" element={
               <ProtectedRoute>
                 <Catalogue />
@@ -122,7 +129,7 @@ const App = () => (
             } />
             <Route path="/dashboard/my-invoices" element={
               <ProtectedRoute allowedRoles={['client', 'stock_manager', 'admin', 'super_admin', 'cooperative', 'provider']}>
-                <MyRentals />
+                <MyInvoices />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/technician" element={

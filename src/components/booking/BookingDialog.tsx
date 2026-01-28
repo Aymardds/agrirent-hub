@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Loader2, ShoppingCart, Ruler } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2, ShoppingCart, Ruler, Home } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +30,7 @@ interface BookingDialogProps {
         price: number;
         price_unit: string;
         service_type: string;
+        category: string;
         image_url?: string;
         gallery?: string[];
         equipment_services?: Service[];
@@ -50,6 +52,24 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
 
     // Selected image from gallery (default to main image)
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+    // Land Properties logic
+    const [properties, setProperties] = useState<any[]>([]);
+    const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
+
+    useEffect(() => {
+        if (user && isOpen) {
+            fetchProperties();
+        }
+    }, [user, isOpen]);
+
+    const fetchProperties = async () => {
+        const { data } = await supabase.from("properties").select("*").eq("owner_id", user?.id);
+        setProperties(data || []);
+        if (data && data.length > 0) {
+            setSelectedPropertyId(data[0].id);
+        }
+    };
 
     // Service Selection Logic
     const hasServices = equipment.equipment_services && equipment.equipment_services.length > 0;
@@ -90,6 +110,11 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
             return;
         }
 
+        if (!selectedPropertyId && !isSale) {
+            toast.error("Veuillez sélectionner une propriété");
+            return;
+        }
+
         if (isDayRent && (!startDate || !endDate)) {
             toast.error("Veuillez sélectionner les dates");
             return;
@@ -118,8 +143,11 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
             const payload: any = {
                 equipment_id: equipment.id,
                 renter_id: user.id,
+                property_id: selectedPropertyId || null,
                 total_price: total,
                 status: "pending",
+                prestation_type: hasServices && selectedService ? selectedService.name : equipment.category,
+                planned_area: !isDayRent && !isSale ? quantity : 0
             };
 
             if (isDayRent) {
@@ -308,6 +336,34 @@ export const BookingDialog = ({ equipment, trigger }: BookingDialogProps) => {
                                         x {activePrice.toLocaleString()} FCFA
                                     </span>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Property Selection */}
+                        {!isSale && (
+                            <div className="space-y-2 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                                <Label className="flex items-center gap-2">
+                                    <Home className="w-4 h-4 text-primary" />
+                                    Propriété concernée
+                                </Label>
+                                {properties.length > 0 ? (
+                                    <select
+                                        className="w-full h-10 rounded-md border border-input bg-background px-3"
+                                        value={selectedPropertyId}
+                                        onChange={(e) => setSelectedPropertyId(e.target.value)}
+                                    >
+                                        {properties.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name} ({p.size} {p.unit} - {p.locality})</option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div className="text-sm text-destructive flex flex-col gap-1">
+                                        <span>Aucune propriété enregistrée.</span>
+                                        <Link to="/dashboard/properties" className="text-primary hover:underline font-medium">
+                                            Ajouter une propriété pour continuer
+                                        </Link>
+                                    </div>
+                                )}
                             </div>
                         )}
 

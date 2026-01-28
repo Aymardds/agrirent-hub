@@ -24,6 +24,7 @@ const Register = () => {
     company: "",
     password: "",
     userType: "client",
+    gender: "homme",
   });
 
   const handlePasswordChange = (password: string) => {
@@ -61,6 +62,7 @@ const Register = () => {
             phone: formData.phone,
             company: formData.company,
             role: formData.userType,
+            gender: formData.gender,
           },
         },
       });
@@ -167,6 +169,35 @@ const Register = () => {
                     {type.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Gender Selection */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Sexe
+              </label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, gender: 'homme' })}
+                  className={`flex-1 p-3 rounded-xl text-xs font-medium border transition-all ${formData.gender === 'homme'
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/50"
+                    }`}
+                >
+                  Homme
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, gender: 'femme' })}
+                  className={`flex-1 p-3 rounded-xl text-xs font-medium border transition-all ${formData.gender === 'femme'
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/50"
+                    }`}
+                >
+                  Femme
+                </button>
               </div>
             </div>
 

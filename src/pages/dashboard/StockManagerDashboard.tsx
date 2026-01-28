@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Package,
     Wrench,
@@ -15,7 +16,10 @@ import {
     ArrowRightLeft,
     CheckCircle2,
     AlertTriangle,
-    Loader2
+    Loader2,
+    Search,
+    UserCircle,
+    MapPin
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +39,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 const StockManagerDashboard = () => {
     const { user } = useAuth();
@@ -47,13 +59,14 @@ const StockManagerDashboard = () => {
     });
     const [pendingReturns, setPendingReturns] = useState<any[]>([]);
     const [pendingRentals, setPendingRentals] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState("overview");
 
     // Form States
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isAssignOpen, setIsAssignOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
 
-    // Add Equipment Form (Full Standard)
+    // Add Equipment Form
     const [newEquipment, setNewEquipment] = useState({
         name: "",
         category: "Tracteurs",
@@ -68,14 +81,16 @@ const StockManagerDashboard = () => {
 
     // Assign Intervention Form
     const [assignData, setAssignData] = useState({
+        rental_id: "",
         equipment_id: "",
         technician_id: "",
-        title: "Maintenance standard",
-        priority: "medium"
+        title: "Mission de prestation",
+        priority: "high"
     });
 
     // Data lists for forms
     const [availableEquipment, setAvailableEquipment] = useState<any[]>([]);
+    const [allEquipment, setAllEquipment] = useState<any[]>([]); // For Inventory Tab
     const [technicians, setTechnicians] = useState<any[]>([]);
 
     useEffect(() => {
@@ -87,9 +102,10 @@ const StockManagerDashboard = () => {
         setLoading(true);
 
         try {
-            // 1. Fetch Stats
-            const { data: equipment } = await supabase.from("equipment").select("*");
+            // 1. Fetch Equipment
+            const { data: equipment } = await supabase.from("equipment").select("*").order('created_at', { ascending: false });
             if (equipment) {
+                setAllEquipment(equipment);
                 setStats({
                     totalEquipment: equipment.length,
                     available: equipment.filter((e: any) => e.status === 'available').length,
@@ -103,19 +119,23 @@ const StockManagerDashboard = () => {
             const { data: returns } = await supabase
                 .from("interventions")
                 .select("*, equipment(name, id), technician:technician_id(full_name)")
-                .eq('status', 'completed'); // Completed by tech, waiting for validation
+                .eq('status', 'completed');
 
             setPendingReturns(returns || []);
 
             // 3. Fetch Pending Rentals (New Requests)
-            const { data: rentals } = await supabase
+            const { data: rentals, error: rentalsError } = await supabase
                 .from("rentals")
                 .select("*, equipment(name, id, location), renter:renter_id(full_name, phone)")
                 .eq('status', 'pending');
 
-            setPendingRentals(rentals || []);
+            if (rentalsError) {
+                console.error("Error fetching pending rentals:", rentalsError);
+            } else {
+                setPendingRentals(rentals || []);
+            }
 
-            // 4. Fetch Technicians for assignment
+            // 4. Fetch Technicians
             const { data: techs } = await supabase
                 .from("profiles")
                 .select("*")
@@ -129,49 +149,97 @@ const StockManagerDashboard = () => {
         }
     };
 
-    const handleApproveRental = async (rental: any, technicianId: string) => {
+    const prepareAssignment = (rental: any) => {
+        setAssignData({
+            rental_id: rental.id,
+            equipment_id: rental.equipment.id,
+            technician_id: "",
+            title: `Mission: ${rental.equipment.name} - ${rental.renter?.full_name}`,
+            priority: "high",
+            scheduled_date: new Date().toISOString().slice(0, 16) // Default to now for input type="datetime-local"
+        });
+        setIsAssignOpen(true);
+    };
+
+    const handleAssignIntervention = async () => {
         try {
-            if (!technicianId) {
-                toast.error("Veuillez choisir un technicien");
+            if (!assignData.technician_id || !assignData.scheduled_date) {
+                toast.error("Veuillez sélectionner un technicien et une date");
                 return;
             }
 
-            // 1. Create Intervention for the Technician
+            // 1. Create Intervention linked to Rental
             const { error: intError } = await supabase.from("interventions").insert([{
-                title: `Mission: ${rental.equipment.name} (${rental.renter.full_name})`,
-                description: `Client: ${rental.renter.full_name}\nLieu: ${rental.equipment.location}\nDates: ${rental.start_date} au ${rental.end_date}\nMontant: ${rental.total_price}`,
-                priority: 'high',
+                title: assignData.title,
+                priority: assignData.priority,
                 status: 'pending',
-                equipment_id: rental.equipment.id,
-                technician_id: technicianId,
+                equipment_id: assignData.equipment_id,
+                technician_id: assignData.technician_id,
+                rental_id: assignData.rental_id, // Link to rental
+                scheduled_date: new Date(assignData.scheduled_date).toISOString(),
                 created_at: new Date().toISOString()
             }]);
 
             if (intError) throw intError;
 
-            // 2. Update Rental Status to Active & Payment to Paid (Simplification for workflow)
-            const { error: rentError } = await supabase
-                .from("rentals")
-                .update({
-                    status: 'active',
-                    payment_status: 'paid' // Assuming payment is handled or confirmed here
-                })
-                .eq('id', rental.id);
+            // 2. Notify Technician
+            const tech = technicians.find(t => t.id === assignData.technician_id);
+            const { error: notifError } = await supabase.from("notifications").insert([{
+                user_id: assignData.technician_id,
+                title: "Nouvelle Mission Assignée",
+                message: `Vous avez été assigné à la mission : ${assignData.title}. Date prévue : ${new Date(assignData.scheduled_date).toLocaleDateString()}`,
+                type: "info",
+                link: "/dashboard/interventions"
+            }]);
 
-            if (rentError) throw rentError;
+            if (notifError) console.error("Notification error:", notifError);
 
-            // 3. Update Equipment Status to Rented
+            // 3. Activate Rental
+            if (assignData.rental_id) {
+                const { error: rentError } = await supabase
+                    .from("rentals")
+                    .update({
+                        status: 'active',
+                        payment_status: 'paid' // Assuming payment/validation overlap
+                    })
+                    .eq('id', assignData.rental_id);
+                if (rentError) throw rentError;
+            }
+
+            // 4. Update Equipment Status
             const { error: eqError } = await supabase
                 .from("equipment")
                 .update({ status: 'rented', available: false })
-                .eq('id', rental.equipment.id);
+                .eq('id', assignData.equipment_id);
 
             if (eqError) throw eqError;
 
-            toast.success("Demande approuvée et technicien assigné !");
+            toast.success("Mission programmée et technicien notifié !");
+            setIsAssignOpen(false);
             fetchData();
         } catch (error: any) {
-            toast.error("Erreur approbation: " + error.message);
+            toast.error("Erreur: " + error.message);
+        }
+    };
+
+    const validateReturn = async (interventionId: string, equipmentId: string) => {
+        try {
+            const { error: intError } = await supabase
+                .from("interventions")
+                .update({ status: 'validated' })
+                .eq('id', interventionId);
+            if (intError) throw intError;
+
+            const { error: eqError } = await supabase
+                .from("equipment")
+                .update({ status: 'available', available: true })
+                .eq('id', equipmentId);
+            if (eqError) throw eqError;
+
+            toast.success("Retour validé !");
+            fetchData();
+        } catch (error: any) {
+            toast.error("Erreur: " + error.message);
         }
     };
 
@@ -181,17 +249,9 @@ const StockManagerDashboard = () => {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Math.random()}.${fileExt}`;
             const filePath = `${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('equipment-images')
-                .upload(filePath, file);
-
+            const { error: uploadError } = await supabase.storage.from('equipment-images').upload(filePath, file);
             if (uploadError) throw uploadError;
-
-            const { data } = supabase.storage
-                .from('equipment-images')
-                .getPublicUrl(filePath);
-
+            const { data } = supabase.storage.from('equipment-images').getPublicUrl(filePath);
             return data.publicUrl;
         } catch (error: any) {
             toast.error('Erreur upload: ' + error.message);
@@ -220,81 +280,9 @@ const StockManagerDashboard = () => {
             }]);
 
             if (error) throw error;
-            toast.success("Matériel ajouté avec succès !");
+            toast.success("Matériel ajouté !");
             setIsAddOpen(false);
-            // Reset form
-            setNewEquipment({
-                name: "",
-                category: "Tracteurs",
-                service_type: "location",
-                price: "",
-                price_unit: "Jour",
-                location: "",
-                description: "",
-                image_url: "",
-                gallery: [],
-            });
             fetchData();
-        } catch (error: any) {
-            toast.error("Erreur: " + error.message);
-        }
-    };
-
-    const handleAssignIntervention = async () => {
-        try {
-            if (!assignData.equipment_id || !assignData.technician_id) {
-                toast.error("Veuillez sélectionner un matériel et un technicien");
-                return;
-            }
-
-            // 1. Create Intervention
-            const { error: intError } = await supabase.from("interventions").insert([{
-                title: assignData.title,
-                priority: assignData.priority,
-                status: 'pending',
-                equipment_id: assignData.equipment_id,
-                technician_id: assignData.technician_id,
-                created_at: new Date().toISOString()
-            }]);
-
-            if (intError) throw intError;
-
-            // 2. Update Equipment Status to 'maintenance'
-            const { error: eqError } = await supabase
-                .from("equipment")
-                .update({ status: 'maintenance', available: false })
-                .eq('id', assignData.equipment_id);
-
-            if (eqError) throw eqError;
-
-            toast.success("Mission assignée au technicien !");
-            setIsAssignOpen(false);
-            fetchData();
-        } catch (error: any) {
-            toast.error("Erreur: " + error.message);
-        }
-    };
-
-    const validateReturn = async (interventionId: string, equipmentId: string) => {
-        try {
-            // 1. Mark intervention as closed/validated
-            const { error: intError } = await supabase
-                .from("interventions")
-                .update({ status: 'validated_return' })
-                .eq('id', interventionId);
-
-            if (intError) throw intError;
-
-            // 2. Mark equipment as available
-            const { error: eqError } = await supabase
-                .from("equipment")
-                .update({ status: 'available', available: true })
-                .eq('id', equipmentId);
-
-            if (eqError) throw eqError;
-
-            toast.success("Retour validé, matériel disponible !");
-            fetchData(); // Refresh list
         } catch (error: any) {
             toast.error("Erreur: " + error.message);
         }
@@ -306,257 +294,14 @@ const StockManagerDashboard = () => {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h1 className="text-3xl font-bold font-display">Gestion de Stock</h1>
-                        <p className="text-muted-foreground">Bienvenue {user?.user_metadata?.full_name || 'Gestionnaire'}</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" className="gap-2">
-                                    <ArrowRightLeft className="w-4 h-4" />
-                                    Sortie / Prestation
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Créer une Sortie de Stock</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label>Matériel (Disponible)</Label>
-                                        <Select
-                                            onValueChange={(v) => setAssignData({ ...assignData, equipment_id: v })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Choisir un matériel" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {availableEquipment.map((e: any) => (
-                                                    <SelectItem key={e.id} value={e.id}>{e.name} ({e.location})</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Technicien Assigné</Label>
-                                        <Select
-                                            onValueChange={(v) => setAssignData({ ...assignData, technician_id: v })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Choisir un technicien" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {technicians.map((t: any) => (
-                                                    <SelectItem key={t.id} value={t.id}>{t.full_name || t.email}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Titre de la mission</Label>
-                                        <Input
-                                            value={assignData.title}
-                                            onChange={(e) => setAssignData({ ...assignData, title: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button onClick={handleAssignIntervention}>Valider la sortie</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                            <DialogTrigger asChild>
-                                <Button className="gap-2">
-                                    <Plus className="w-4 h-4" />
-                                    Ajouter Matériel
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                                <DialogHeader>
-                                    <DialogTitle>Ajouter au Stock (Complet)</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label>Nom du matériel</Label>
-                                        <Input
-                                            placeholder="Ex: Tracteur John Deere"
-                                            value={newEquipment.name}
-                                            onChange={(e) => setNewEquipment({ ...newEquipment, name: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label>Photo principale</Label>
-                                        <Input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={async (e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    const url = await uploadImage(file);
-                                                    if (url) setNewEquipment({ ...newEquipment, image_url: url });
-                                                }
-                                            }}
-                                        />
-                                        {newEquipment.image_url && (
-                                            <p className="text-xs text-green-600">Image chargée !</p>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label>Galerie (plusieurs photos)</Label>
-                                        <Input
-                                            type="file"
-                                            accept="image/*"
-                                            multiple
-                                            onChange={async (e) => {
-                                                const files = Array.from(e.target.files || []);
-                                                if (files.length > 0) {
-                                                    const urls = [];
-                                                    for (const file of files) {
-                                                        const url = await uploadImage(file);
-                                                        if (url) urls.push(url);
-                                                    }
-                                                    setNewEquipment({ ...newEquipment, gallery: [...newEquipment.gallery, ...urls] });
-                                                }
-                                            }}
-                                        />
-                                        {newEquipment.gallery.length > 0 && (
-                                            <p className="text-xs text-green-600">{newEquipment.gallery.length} images ajoutées à la galerie</p>
-                                        )}
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>Catégorie</Label>
-                                            <select
-                                                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2"
-                                                value={newEquipment.category}
-                                                onChange={(e) => setNewEquipment({ ...newEquipment, category: e.target.value })}
-                                            >
-                                                <option value="Tracteurs">Tracteurs</option>
-                                                <option value="Moissonneuses">Moissonneuses</option>
-                                                <option value="Semoirs">Semoirs</option>
-                                                <option value="Pulvérisateurs">Pulvérisateurs</option>
-                                                <option value="Autre">Autre</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Type de service</Label>
-                                            <select
-                                                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2"
-                                                value={newEquipment.service_type}
-                                                onChange={(e) => setNewEquipment({ ...newEquipment, service_type: e.target.value })}
-                                            >
-                                                <option value="location">Location</option>
-                                                <option value="vente">Vente</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>Prix (FCFA)</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="5000"
-                                                value={newEquipment.price}
-                                                onChange={(e) => setNewEquipment({ ...newEquipment, price: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Unité</Label>
-                                            <select
-                                                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2"
-                                                value={newEquipment.price_unit}
-                                                onChange={(e) => setNewEquipment({ ...newEquipment, price_unit: e.target.value })}
-                                            >
-                                                <option value="Jour">Par Jour</option>
-                                                <option value="Heure">Par Heure</option>
-                                                <option value="Hectare">Par Hectare</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label>Localisation</Label>
-                                        <Input
-                                            placeholder="Ex: Dakar"
-                                            value={newEquipment.location}
-                                            onChange={(e) => setNewEquipment({ ...newEquipment, location: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Description</Label>
-                                        <Textarea
-                                            value={newEquipment.description}
-                                            onChange={(e) => setNewEquipment({ ...newEquipment, description: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button onClick={handleAddEquipment} disabled={uploading}>
-                                        {uploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                        Enregistrer
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+                        <p className="text-muted-foreground">Espace Gestionnaire</p>
                     </div>
                 </div>
 
-                {/* Pending Rentals / Requests Section */}
-                {pendingRentals.length > 0 && (
-                    <Card className="border-blue-200 bg-blue-50 mb-6">
-                        <div className="p-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <AlertTriangle className="w-5 h-5 text-blue-600" />
-                                <h2 className="text-lg font-semibold text-blue-900">Demandes en Attente ({pendingRentals.length})</h2>
-                            </div>
-                            <div className="space-y-3">
-                                {pendingRentals.map((rental: any) => (
-                                    <div key={rental.id} className="bg-white p-4 rounded-lg border border-blue-100 flex flex-col md:flex-row justify-between items-center shadow-sm gap-4">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <Badge className="bg-blue-600">Nouvelle Demande</Badge>
-                                                <span className="font-bold text-foreground">{rental.equipment?.name}</span>
-                                            </div>
-                                            <p className="text-sm text-gray-600 mt-1">
-                                                Client: <span className="font-medium">{rental.renter?.full_name}</span> •
-                                                Dates: {rental.start_date} / {rental.end_date}
-                                            </p>
-                                            <p className="text-sm font-bold text-primary mt-1">
-                                                {rental.total_price.toLocaleString()} FCFA
-                                            </p>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            <Select onValueChange={(tId) => handleApproveRental(rental, tId)}>
-                                                <SelectTrigger className="w-[200px] border-blue-200">
-                                                    <SelectValue placeholder="Assigner Technicien" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {technicians.map((t: any) => (
-                                                        <SelectItem key={t.id} value={t.id}>{t.full_name || t.email}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </Card>
-                )}
-
-                {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <Card className="p-6">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-primary/10 text-primary rounded-xl">
-                                <Package className="w-6 h-6" />
-                            </div>
+                            <div className="p-3 bg-primary/10 text-primary rounded-xl"><Package className="w-6 h-6" /></div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Total matériel</p>
                                 <h3 className="text-2xl font-bold">{stats.totalEquipment}</h3>
@@ -565,9 +310,7 @@ const StockManagerDashboard = () => {
                     </Card>
                     <Card className="p-6">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-success/10 text-success rounded-xl">
-                                <TrendingUp className="w-6 h-6" />
-                            </div>
+                            <div className="p-3 bg-success/10 text-success rounded-xl"><TrendingUp className="w-6 h-6" /></div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Disponible</p>
                                 <h3 className="text-2xl font-bold">{stats.available}</h3>
@@ -576,20 +319,16 @@ const StockManagerDashboard = () => {
                     </Card>
                     <Card className="p-6">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl">
-                                <Calendar className="w-6 h-6" />
-                            </div>
+                            <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl"><Calendar className="w-6 h-6" /></div>
                             <div>
-                                <p className="text-sm text-muted-foreground">En location</p>
+                                <p className="text-sm text-muted-foreground">En prestation</p>
                                 <h3 className="text-2xl font-bold">{stats.rented}</h3>
                             </div>
                         </div>
                     </Card>
                     <Card className="p-6">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-orange-500/10 text-orange-500 rounded-xl">
-                                <Wrench className="w-6 h-6" />
-                            </div>
+                            <div className="p-3 bg-orange-500/10 text-orange-500 rounded-xl"><Wrench className="w-6 h-6" /></div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Maintenance</p>
                                 <h3 className="text-2xl font-bold">{stats.maintenance}</h3>
@@ -598,56 +337,206 @@ const StockManagerDashboard = () => {
                     </Card>
                 </div>
 
-                {/* Validation Section - CRITICAL WORKFLOW */}
-                {pendingReturns.length > 0 && (
-                    <Card className="border-orange-200 bg-orange-50">
-                        <div className="p-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <AlertTriangle className="w-5 h-5 text-orange-600" />
-                                <h2 className="text-lg font-semibold text-orange-900">Retours à Valider ({pendingReturns.length})</h2>
-                            </div>
-                            <div className="space-y-3">
-                                {pendingReturns.map((intervention: any) => (
-                                    <div key={intervention.id} className="bg-white p-4 rounded-lg border border-orange-100 flex justify-between items-center shadow-sm">
-                                        <div>
-                                            <p className="font-semibold text-foreground">{intervention.equipment?.name}</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Tech: {intervention.technician?.full_name || 'Inconnu'} • Mission: {intervention.title}
-                                            </p>
-                                            <div className="flex gap-2 mt-2">
-                                                <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
-                                                    Terminé par technicien
-                                                </Badge>
-                                                {intervention.area_covered && (
-                                                    <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">
-                                                        Superficie: {intervention.area_covered.toFixed(4)} ha
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <Button
-                                            onClick={() => validateReturn(intervention.id, intervention.equipment?.id)}
-                                            className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                                        >
-                                            <CheckCircle2 className="w-4 h-4" />
-                                            Confirmer le retour
-                                        </Button>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
+                        <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+                        <TabsTrigger value="requests">Demandes ({pendingRentals.length})</TabsTrigger>
+                        <TabsTrigger value="stock">Inventaire</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="overview" className="space-y-6">
+                        {/* Pending Returns (Validation) */}
+                        {pendingReturns.length > 0 ? (
+                            <Card className="border-orange-200 bg-orange-50">
+                                <div className="p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <AlertTriangle className="w-5 h-5 text-orange-600" />
+                                        <h2 className="text-lg font-semibold text-orange-900">Retours à Valider ({pendingReturns.length})</h2>
                                     </div>
-                                ))}
+                                    <div className="space-y-3">
+                                        {pendingReturns.map((intervention: any) => (
+                                            <div key={intervention.id} className="bg-white p-4 rounded-lg border border-orange-100 flex justify-between items-center shadow-sm">
+                                                <div>
+                                                    <p className="font-semibold text-foreground">{intervention.equipment?.name}</p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Tech: {intervention.technician?.full_name || 'Inconnu'} • Mission: {intervention.title}
+                                                    </p>
+                                                </div>
+                                                <Button onClick={() => validateReturn(intervention.id, intervention.equipment?.id)} className="bg-green-600 hover:bg-green-700 text-white gap-2">
+                                                    <CheckCircle2 className="w-4 h-4" /> Confirmer
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </Card>
+                        ) : (
+                            <Card className="p-6 flex items-center justify-center text-muted-foreground border-dashed">
+                                <p>Aucun retour en attente de validation</p>
+                            </Card>
+                        )}
+
+                        {/* Short Summary of Requests */}
+                        <div className="mt-4">
+                            <h3 className="text-lg font-semibold mb-2">Dernières demandes</h3>
+                            {pendingRentals.length > 0 ? (
+                                <div className="space-y-2">
+                                    {pendingRentals.slice(0, 3).map((rental: any) => (
+                                        <div key={rental.id} className="bg-card p-4 rounded-xl border flex justify-between items-center">
+                                            <div>
+                                                <p className="font-medium">{rental.equipment?.name}</p>
+                                                <p className="text-sm text-muted-foreground">{rental.renter?.full_name}</p>
+                                            </div>
+                                            <Button variant="outline" size="sm" onClick={() => { setActiveTab("requests"); }}>
+                                                Voir
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-muted-foreground">Aucune nouvelle demande.</p>
+                            )}
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="requests">
+                        <Card>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Matériel</TableHead>
+                                        <TableHead>Client</TableHead>
+                                        <TableHead>Dates</TableHead>
+                                        <TableHead>Lieu</TableHead>
+                                        <TableHead className="text-right">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {pendingRentals.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                                                Aucune demande en attente
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        pendingRentals.map((rental: any) => (
+                                            <TableRow key={rental.id}>
+                                                <TableCell className="font-medium">{rental.equipment?.name}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <UserCircle className="w-4 h-4 text-muted-foreground" />
+                                                        {rental.renter?.full_name}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col text-sm">
+                                                        <span>{new Date(rental.start_date).toLocaleDateString()}</span>
+                                                        <span className="text-muted-foreground text-xs">au {new Date(rental.end_date).toLocaleDateString()}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {rental.equipment?.location}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button onClick={() => prepareAssignment(rental)} className="gap-2">
+                                                        <CheckCircle2 className="w-4 h-4" /> Programmer
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="stock">
+                        <div className="flex justify-end mb-4">
+                            <Button onClick={() => setIsAddOpen(true)} className="gap-2">
+                                <Plus className="w-4 h-4" /> Ajouter Matériel
+                            </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {allEquipment.map((item: any) => (
+                                <div key={item.id} className="group bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                                    <div className="aspect-video bg-muted relative overflow-hidden">
+                                        <img src={item.image_url || "https://images.unsplash.com/photo-1592878904946-b3cd8ae243d9?w=800&auto=format&fit=crop&q=60"} alt={item.name} className="w-full h-full object-cover" />
+                                        <div className="absolute top-2 right-2">
+                                            <Badge variant="secondary" className="bg-white/90">{item.status}</Badge>
+                                        </div>
+                                    </div>
+                                    <div className="p-4">
+                                        <h3 className="font-semibold text-lg">{item.name}</h3>
+                                        <p className="text-sm text-muted-foreground">{item.category}</p>
+                                        <div className="mt-2 flex justify-between items-center">
+                                            <span className="font-bold text-primary">{item.price} FCFA</span>
+                                            <span className="text-xs text-muted-foreground">/{item.price_unit}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </TabsContent>
+                </Tabs>
+
+                {/* Assignment Dialog */}
+                <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Programmer la Mission</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Titre de la mission</Label>
+                                <Input value={assignData.title} onChange={(e) => setAssignData({ ...assignData, title: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Technicien à assigner</Label>
+                                <Select onValueChange={(v) => setAssignData({ ...assignData, technician_id: v })}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Choisir un technicien" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {technicians.map((t: any) => (
+                                            <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
-                    </Card>
-                )}
+                        <DialogFooter>
+                            <Button onClick={handleAssignIntervention}>Confirmer l'assignation</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
-                {/* Empty State Helper */}
-                {stats.totalEquipment === 0 && (
-                    <div className="text-center py-12 bg-muted/30 rounded-lg">
-                        <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold">Stock vide</h3>
-                        <p className="text-muted-foreground mb-4">Commencez par ajouter du matériel à votre inventaire.</p>
-                        <Button variant="outline" onClick={() => setIsAddOpen(true)}>Ajouter un premier matériel</Button>
-                    </div>
-                )}
+                {/* Add Equipment Dialog (Simplified reuse) */}
+                <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                    <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader><DialogTitle>Ajouter Matériel</DialogTitle></DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Nom</Label>
+                                <Input value={newEquipment.name} onChange={(e) => setNewEquipment({ ...newEquipment, name: e.target.value })} placeholder="Ex: Tracteur" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Prix</Label>
+                                    <Input type="number" value={newEquipment.price} onChange={(e) => setNewEquipment({ ...newEquipment, price: e.target.value })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Location</Label>
+                                    <Input value={newEquipment.location} onChange={(e) => setNewEquipment({ ...newEquipment, location: e.target.value })} />
+                                </div>
+                            </div>
+                            <Button className="w-full mt-4" onClick={handleAddEquipment}>Ajouter</Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
             </div>
         </DashboardLayout>
     );

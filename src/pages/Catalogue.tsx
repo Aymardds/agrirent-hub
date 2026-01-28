@@ -90,7 +90,7 @@ const Catalogue = () => {
               Catalogue de Matériel
             </h1>
             <p className="text-lg text-muted-foreground">
-              Découvrez notre gamme complète de matériel agricole disponible à la location.
+              Découvrez notre gamme complète de matériel agricole disponible.
             </p>
           </div>
 
@@ -181,14 +181,14 @@ const Catalogue = () => {
                           {item.category}
                         </span>
                         <span className="text-xs font-medium text-secondary-foreground bg-secondary px-2 py-1 rounded-full">
-                          {item.service_type === 'vente' ? 'Vente' : 'Location'}
+                          {item.service_type === 'vente' ? 'Vente' : 'Prestation'}
                         </span>
                       </div>
                       <span className={`text-xs font-medium px-2 py-1 rounded-full ${item.available
                         ? "bg-success/10 text-success"
                         : "bg-destructive/10 text-destructive"
                         }`}>
-                        {item.available ? "Disponible" : (item.service_type === 'vente' ? "Vendu" : "Loué")}
+                        {item.available ? "Disponible" : (item.service_type === 'vente' ? "Vendu" : "En prestation")}
                       </span>
                     </div>
 

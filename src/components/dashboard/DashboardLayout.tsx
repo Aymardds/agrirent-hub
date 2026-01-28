@@ -14,7 +14,8 @@ import {
   Search,
   Wrench,
   ShoppingCart,
-  BarChart3
+  BarChart3,
+  Home
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,10 +32,10 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
-  // Use the role from user metadata with normalization, fallback to prop
-  const normalizedRole = normalizeRole(user?.user_metadata?.role);
+  // Use the role from profile (DB) first, then user metadata (Auth), with normalization, fallback to prop
+  const normalizedRole = normalizeRole(profile?.role || user?.user_metadata?.role);
   const userRole = (normalizedRole as UserRole) || propUserRole;
 
   const handleLogout = async () => {
@@ -46,6 +47,8 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
   useEffect(() => {
     console.log('📋 Dashboard Layout Loaded:', {
       userRole,
+      profileRole: profile?.role,
+      metadataRole: user?.user_metadata?.role,
       menuItems: menu.length,
       currentPath: location.pathname,
       menu: menu.map(m => ({ label: m.label, href: m.href }))
@@ -57,7 +60,7 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
       { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard" },
       { icon: Users, label: "Utilisateurs", href: "/dashboard/users" },
       { icon: Package, label: "Matériels", href: "/dashboard/stock" },
-      { icon: Calendar, label: "Locations", href: "/dashboard/rentals" },
+      { icon: Calendar, label: "Prestations", href: "/dashboard/rentals" },
       { icon: Wrench, label: "Interventions", href: "/dashboard/interventions" },
       { icon: BarChart3, label: "Statistiques", href: "/dashboard/stats" },
       { icon: FileText, label: "Facturation", href: "/dashboard/invoices" },
@@ -67,7 +70,10 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
       { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard" },
       { icon: Users, label: "Utilisateurs", href: "/dashboard/users" },
       { icon: Package, label: "Matériels", href: "/dashboard/stock" },
-      { icon: Calendar, label: "Locations", href: "/dashboard/rentals" },
+      { icon: Calendar, label: "Prestations", href: "/dashboard/rentals" },
+      { icon: Wrench, label: "Interventions", href: "/dashboard/interventions" },
+      { icon: BarChart3, label: "Statistiques", href: "/dashboard/stats" },
+      { icon: FileText, label: "Facturation", href: "/dashboard/invoices" },
       { icon: Settings, label: "Paramètres", href: "/dashboard/settings" },
     ],
     stock_manager: [
@@ -85,8 +91,9 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
     ],
     client: [
       { icon: LayoutDashboard, label: "Accueil", href: "/dashboard/client" },
+      { icon: Home, label: "Mes Propriétés", href: "/dashboard/properties" },
       { icon: ShoppingCart, label: "Catalogue", href: "/dashboard/catalog" },
-      { icon: Calendar, label: "Mes locations", href: "/dashboard/my-rentals" },
+      { icon: Calendar, label: "Mes prestations", href: "/dashboard/my-rentals" },
       { icon: FileText, label: "Factures", href: "/dashboard/my-invoices" },
     ],
     accountant: [

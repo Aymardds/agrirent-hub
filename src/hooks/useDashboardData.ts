@@ -28,7 +28,9 @@ export const useDashboardStats = () => {
                 .select("*", { count: "exact", head: true })
                 .eq("status", "active");
 
-            if (rentalsError) throw rentalsError;
+            if (rentalsError) {
+                console.warn("Error fetching active rentals:", rentalsError);
+            }
 
             // Récupérer toutes les transactions terminées (payées ou complétées) pour les stats globales
             const { data: allTransactions, error: transactionsError } = await supabase
@@ -42,7 +44,9 @@ export const useDashboardStats = () => {
                 `)
                 .eq("status", "completed");
 
-            if (transactionsError) throw transactionsError;
+            if (transactionsError) {
+                console.warn("Error fetching transactions:", transactionsError);
+            }
 
             // Calculer les métriques globales
             let completedRentals = 0;
@@ -103,6 +107,51 @@ export const useDashboardStats = () => {
                     ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
                     : 0;
 
+            // Récupérer la superficie totale traitée (area_covered) depuis les interventions terminées
+            // Jointure logique avec equipment pour filtrer par catégorie
+            const { data: areaData, error: areaError } = await supabase
+                .from("interventions")
+                .select(`
+                    area_covered,
+                    equipment (
+                        category
+                    )
+                `)
+                .in("status", ["completed", "validated"]);
+
+            if (areaError) throw areaError;
+
+            let totalArea = 0;
+            let labouredArea = 0;
+            let harvestedArea = 0;
+
+            areaData?.forEach((item: any) => {
+                const area = item.area_covered || 0;
+                const category = item.equipment?.category;
+
+                totalArea += area;
+                if (category === 'Tracteurs') labouredArea += area;
+                if (category === 'Moissonneuses') harvestedArea += area;
+            });
+
+            // Récupérer le nombre de matériels loués (en cours)
+            const { count: rentedEquipmentCount } = await supabase
+                .from("equipment")
+                .select("*", { count: "exact", head: true })
+                .eq("status", "rented");
+
+            // Récupérer les statistiques sur les paysans (clients)
+            const { data: profileData, error: profileError } = await supabase
+                .from("profiles")
+                .select("gender")
+                .eq("role", "client");
+
+            if (profileError) throw profileError;
+
+            const peasantCount = profileData?.length || 0;
+            const womenCount = profileData?.filter(p => p.gender === 'femme').length || 0;
+            const womenPercentage = peasantCount > 0 ? Math.round((womenCount / peasantCount) * 100) : 0;
+
             return {
                 usersCount: usersCount || 0,
                 equipmentCount: equipmentCount || 0,
@@ -112,9 +161,109 @@ export const useDashboardStats = () => {
                 completedRentals,
                 completedSales,
                 totalRevenue,
+                totalTransactions: completedRentals + completedSales,
+                totalArea,
+                labouredArea,
+                harvestedArea,
+                rentedEquipmentCount: rentedEquipmentCount || 0,
+                peasantCount,
+                womenPercentage,
             };
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
+    });
+};
+
+/**
+ * Hook pour récupérer les statistiques du dashboard Client (Agriculteur / Coopérative)
+ */
+export const useClientDashboardStats = (userId: string | undefined) => {
+    return useQuery({
+        queryKey: ["client-dashboard-stats", userId],
+        enabled: !!userId,
+        queryFn: async () => {
+            // 1. Récupérer le profil pour les superficies et la localité
+            const { data: profile, error: profileError } = await supabase
+                .from("profiles")
+                .select("total_area_available, cultivated_area, locality")
+                .eq("id", userId)
+                .single();
+
+            if (profileError) throw profileError;
+
+            // 2. Récupérer les propriétés du client pour la superficie totale
+            const { data: properties, error: propertiesError } = await supabase
+                .from("properties")
+                .select("size, unit")
+                .eq("owner_id", userId);
+
+            if (propertiesError) throw propertiesError;
+
+            const totalAreaAvailable = properties?.reduce((sum, p) => {
+                // Pour l'instant on additionne tout, mais on pourrait différencier hectares et casiers
+                return sum + (p.size || 0);
+            }, 0) || 0;
+
+            // 3. Récupérer toutes les prestations du client
+            const { data: rentals, error: rentalsError } = await supabase
+                .from("rentals")
+                .select(`
+                    id,
+                    total_price,
+                    status,
+                    payment_status,
+                    prestation_type,
+                    planned_area,
+                    created_at
+                `)
+                .eq("renter_id", userId);
+
+            if (rentalsError) throw rentalsError;
+
+            let totalAmount = 0;
+            let paidAmount = 0;
+            let transactionCount = rentals?.length || 0;
+            let pendingPrestations = rentals?.filter(r => r.status === 'pending' || r.status === 'active').length || 0;
+
+            let completedArea = 0;
+            let totalPlannedArea = 0;
+
+            rentals?.forEach(r => {
+                totalAmount += r.total_price || 0;
+                if (r.payment_status === 'paid') {
+                    paidAmount += r.total_price || 0;
+                }
+
+                totalPlannedArea += r.planned_area || 0;
+                if (r.status === 'completed') {
+                    completedArea += r.planned_area || 0;
+                }
+            });
+
+            const remainingAmount = totalAmount - paidAmount;
+            const recoveryRate = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
+            const executionRate = totalPlannedArea > 0 ? Math.round((completedArea / totalPlannedArea) * 100) : 0;
+
+            const prestationTypes = rentals?.map(r => r.prestation_type).filter(Boolean);
+            const mainPrestationType = prestationTypes?.length ? prestationTypes[0] : "Aucune";
+
+            return {
+                mainPrestationType,
+                totalAreaAvailable,
+                propertiesCount: properties?.length || 0,
+                cultivatedArea: profile?.cultivated_area || 0,
+                locality: profile?.locality || "Non renseignée",
+                transactionCount,
+                totalAmount,
+                executionRate,
+                completedArea,
+                pendingPrestations,
+                paidAmount,
+                remainingAmount,
+                recoveryRate
+            };
+        },
+        staleTime: 1000 * 60 * 5,
     });
 };
 

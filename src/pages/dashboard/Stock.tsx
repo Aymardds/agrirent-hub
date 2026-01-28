@@ -267,6 +267,12 @@ const Stock = () => {
         maintenance: "bg-destructive/10 text-destructive border-destructive/20",
     };
 
+    const statusLabels = {
+        available: "Disponible",
+        rented: "En prestation",
+        maintenance: "Maintenance",
+    };
+
     const addService = () => {
         setFormData({
             ...formData,
@@ -348,7 +354,7 @@ const Stock = () => {
                                     )}
                                     <div className="absolute top-2 right-2">
                                         <Badge variant="outline" className={`bg-white/90 backdrop-blur ${statusColors[item.status]}`}>
-                                            {item.status === 'available' ? 'Disponible' : item.status === 'rented' ? 'Loué' : 'Maintenance'}
+                                            {statusLabels[item.status]}
                                         </Badge>
                                     </div>
                                 </div>
@@ -444,7 +450,7 @@ const Stock = () => {
                                         value={formData.service_type}
                                         onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
                                     >
-                                        <option value="location">Location</option>
+                                        <option value="location">Prestation</option>
                                         <option value="vente">Vente</option>
                                     </select>
                                 </div>

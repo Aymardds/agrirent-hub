@@ -142,14 +142,14 @@ const Interventions = () => {
         return i.technician_id === user?.id || !i.technician_id;
     });
 
-    const historyInterventions = interventions.filter(i => ['completed', 'cancelled'].includes(i.status)); // History could be global or personal
+    const historyInterventions = interventions.filter(i => ['completed', 'cancelled', 'validated'].includes(i.status)); // History could be global or personal
 
     // Stats
     const stats = {
         total: interventions.length,
         pending: interventions.filter(i => i.status === 'pending').length,
         inProgress: interventions.filter(i => i.status === 'in_progress').length,
-        completed: interventions.filter(i => i.status === 'completed').length,
+        completed: interventions.filter(i => ['completed', 'validated'].includes(i.status)).length,
     };
 
     const priorityColors = {

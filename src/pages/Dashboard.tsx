@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { normalizeRole } from "@/lib/roleUtils";
 import { useEffect, useState } from "react";
 import {
@@ -31,7 +31,8 @@ import StockManagerDashboard from "./dashboard/StockManagerDashboard";
 import AccountantDashboard from "./dashboard/AccountantDashboard";
 
 const Dashboard = () => {
-  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const { user, profile, loading } = useAuth();
   const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   // Récupérer les données réelles
@@ -86,7 +87,8 @@ const Dashboard = () => {
 
   if (!user) return <Navigate to="/login" />;
 
-  const role = normalizeRole(user.user_metadata?.role);
+  // Prioritize profile role (from DB) over metadata role (from Auth cookie)
+  const role = normalizeRole(profile?.role || user.user_metadata?.role);
 
   console.log('🎯 Dashboard Dispatcher - Rendering dashboard for role:', role);
 
@@ -156,39 +158,52 @@ const Dashboard = () => {
     }).format(amount) + ' FCFA';
   };
 
+  // Formater la superficie
+  const formatArea = (area: number) => {
+    return area.toFixed(2) + ' ha';
+  };
+
   // Préparer les statistiques avec les données réelles
   const stats = [
     {
-      title: "Chiffre d'affaire",
-      value: formatCurrency(dashboardStats?.totalRevenue || 0),
-      change: "Total",
-      changeType: "neutral" as const,
-      icon: CreditCard,
-      iconColor: "bg-primary/10 text-primary",
+      title: "Matériels loués",
+      value: dashboardStats?.rentedEquipmentCount.toString() || "0",
+      change: "En cours",
+      changeType: "positive" as const,
+      icon: Package,
+      iconColor: "bg-orange-500/10 text-orange-500",
     },
     {
-      title: "Revenus du mois",
-      value: formatCurrency(dashboardStats?.monthlyRevenue || 0),
-      change: `${dashboardStats?.revenueChange && dashboardStats.revenueChange > 0 ? '+' : ''}${Math.round(dashboardStats?.revenueChange || 0)}%`,
-      changeType: (dashboardStats?.revenueChange || 0) >= 0 ? "positive" as const : "negative" as const,
+      title: "Superficie Labourée",
+      value: formatArea(dashboardStats?.labouredArea || 0),
+      change: "Hectares",
+      changeType: "neutral" as const,
       icon: TrendingUp,
       iconColor: "bg-success/10 text-success",
     },
     {
-      title: "Locations réalisées",
-      value: dashboardStats?.completedRentals.toString() || "0",
-      change: "Total",
+      title: "Superficie Moissonnée",
+      value: formatArea(dashboardStats?.harvestedArea || 0),
+      change: "Hectares",
       changeType: "neutral" as const,
-      icon: CheckCircle2,
+      icon: TrendingUp,
       iconColor: "bg-blue-500/10 text-blue-500",
     },
     {
-      title: "Ventes réalisées",
-      value: dashboardStats?.completedSales.toString() || "0",
+      title: "Paysans",
+      value: dashboardStats?.peasantCount.toString() || "0",
+      change: `${dashboardStats?.womenPercentage || 0}% de femmes`,
+      changeType: "neutral" as const,
+      icon: Users,
+      iconColor: "bg-primary/10 text-primary",
+    },
+    {
+      title: "Transactions",
+      value: dashboardStats?.totalTransactions.toString() || "0",
       change: "Total",
       changeType: "neutral" as const,
-      icon: Package,
-      iconColor: "bg-orange-500/10 text-orange-500",
+      icon: CreditCard,
+      iconColor: "bg-success/10 text-success",
     },
   ];
 
@@ -221,14 +236,14 @@ const Dashboard = () => {
             <Button variant="outline">
               Exporter
             </Button>
-            <Button variant="hero">
-              Nouvelle location
+            <Button variant="hero" onClick={() => navigate('/dashboard/catalog')}>
+              Nouvelle prestation
             </Button>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {stats.map((stat, index) => (
             <StatsCard key={index} {...stat} />
           ))}
@@ -239,7 +254,7 @@ const Dashboard = () => {
           {/* Recent Rentals */}
           <div className="lg:col-span-2 bg-card rounded-xl border border-border">
             <div className="p-6 border-b border-border flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Locations récentes</h2>
+              <h2 className="text-lg font-semibold text-foreground">Prestations récentes</h2>
               <Button variant="ghost" size="sm">Voir tout</Button>
             </div>
             <div className="divide-y divide-border">
@@ -276,7 +291,7 @@ const Dashboard = () => {
               ) : (
                 <div className="p-8 text-center text-muted-foreground">
                   <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Aucune location récente</p>
+                  <p>Aucune prestation récente</p>
                 </div>
               )}
             </div>
@@ -306,7 +321,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-success" />
-                    <span className="text-muted-foreground">Locations terminées</span>
+                    <span className="text-muted-foreground">Prestations terminées</span>
                   </div>
                   <span className="font-medium">{performance?.completed || 0}</span>
                 </div>
@@ -341,7 +356,7 @@ const Dashboard = () => {
                 </Button>
                 <Button variant="outline" className="w-full justify-start">
                   <Calendar className="w-4 h-4 mr-2" />
-                  Planifier une location
+                  Planifier une prestation
                 </Button>
               </div>
             </div>

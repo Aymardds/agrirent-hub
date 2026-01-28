@@ -183,7 +183,7 @@ const TechnicianDashboard = () => {
                                             {intervention.status === 'in_progress' && (
                                                 <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => handleCompleteIntervention(intervention.id)}>
                                                     <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                    Terminer
+                                                    Terminer Prestation
                                                 </Button>
                                             )}
 
