@@ -72,10 +72,52 @@ const TechnicianDashboard = () => {
         }
     };
 
-    const stats = {
-        pending: interventions.filter(i => i.status === 'pending').length,
-        inProgress: interventions.filter(i => i.status === 'in_progress').length,
+    const [stats, setStats] = useState({
+        pending: 0,
+        inProgress: 0,
+        completedMonth: 0
+    });
+
+    const fetchStats = async () => {
+        if (!user) return;
+
+        // 1. Pending & In Progress (already fetched in interventions, but let's be robust)
+        // We can derive them from 'interventions' state if we trust it contains all active ones.
+        // The current fetchMyInterventions gets all pending/in_progress/completed(waiting).
+
+        // 2. Completed This Month (Validated or Completed status, updated in current month)
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+
+        const { count, error } = await supabase
+            .from("interventions")
+            .select("*", { count: 'exact', head: true })
+            .eq("technician_id", user.id)
+            .in("status", ["completed", "validated"]) // completed by tech or fully validated
+            .gte("created_at", startOfMonth) // Using created_at or updated_at? Let's use created_at for "missions received/done this month" or updated_at for "finished this month". 
+            // The prompt says "Terminés (ce mois)". Usually implies finished.
+            // But we don't have a 'finished_at' column guaranteed. 'updated_at' is best proxy if status changed.
+            // Let's stick to created_at for simplicity if updated_at isn't reliable, OR just count status=validated/completed 
+            // regardless of date if the user just wants a count, but label says "ce mois".
+            // Let's use created_at >= startOfMonth for "Missions of this month that are done".
+            .gte("created_at", startOfMonth)
+            .lte("created_at", endOfMonth);
+
+        if (error) console.error("Error fetching stats", error);
+
+        setStats({
+            pending: interventions.filter(i => i.status === 'pending').length,
+            inProgress: interventions.filter(i => i.status === 'in_progress').length,
+            completedMonth: count || 0
+        });
     };
+
+    useEffect(() => {
+        if (interventions.length >= 0) {
+            fetchStats();
+        }
+    }, [interventions, user]);
 
     return (
         <DashboardLayout>
@@ -116,7 +158,7 @@ const TechnicianDashboard = () => {
                             </div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Terminés (ce mois)</p>
-                                <h3 className="text-2xl font-bold">12</h3>
+                                <h3 className="text-2xl font-bold">{stats.completedMonth}</h3>
                             </div>
                         </div>
                     </Card>

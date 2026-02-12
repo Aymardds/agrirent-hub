@@ -44,8 +44,14 @@ interface Rental {
     }[];
 }
 
+import { useSearchParams } from "react-router-dom";
+
+// ... existing imports
+
 const MyRentals = () => {
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
+    const filter = searchParams.get('filter');
     const [activeTab, setActiveTab] = useState("tenant"); // tenant, owner, planning
     const [rentals, setRentals] = useState<Rental[]>([]);
     const [loading, setLoading] = useState(true);
@@ -69,6 +75,11 @@ const MyRentals = () => {
 
             if (activeTab === "tenant") {
                 query = query.eq("renter_id", user.id);
+
+                // Apply filter for unpaid rentals if requested
+                if (filter === 'unpaid') {
+                    query = query.neq('payment_status', 'paid');
+                }
             } else {
                 // Determine if we are owners
                 const { data: myEquipment } = await supabase.from("equipment").select("id").eq("owner_id", user.id);
@@ -101,7 +112,7 @@ const MyRentals = () => {
 
     useEffect(() => {
         fetchRentals();
-    }, [user, activeTab]);
+    }, [user, activeTab, filter]);
 
     const updateStatus = async (rentalId: string, newStatus: string) => {
         try {

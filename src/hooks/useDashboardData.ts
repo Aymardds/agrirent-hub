@@ -127,11 +127,13 @@ export const useDashboardStats = () => {
 
             areaData?.forEach((item: any) => {
                 const area = item.area_covered || 0;
-                const category = item.equipment?.category;
+                const category = (item.equipment?.category || "").toLowerCase();
 
                 totalArea += area;
-                if (category === 'Tracteurs') labouredArea += area;
-                if (category === 'Moissonneuses') harvestedArea += area;
+                // Match "tracteur" or "tracteurs"
+                if (category.includes('tracteur')) labouredArea += area;
+                // Match "moissonneuse" or "moissonneuses"
+                if (category.includes('moisson')) harvestedArea += area;
             });
 
             // Récupérer le nombre de matériels loués (en cours)
@@ -284,6 +286,11 @@ export const useRecentRentals = (limit = 4) => {
           start_date,
           end_date,
           total_price,
+          prestation_type,
+          payment_status,
+          properties (
+            name
+          ),
           equipment:equipment_id (
             id,
             name,
@@ -344,8 +351,8 @@ export const useMonthlyPerformance = () => {
             // Calculer le taux d'occupation
             const { count: totalEquipment } = await supabase
                 .from("equipment")
-                .select("*", { count: "exact", head: true })
-                .eq("status", "available");
+                .select("*", { count: "exact", head: true });
+            // Remove .eq("status", "available") to get TRUE total
 
             const { count: rentedEquipment } = await supabase
                 .from("rentals")

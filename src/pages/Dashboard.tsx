@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, Link } from "react-router-dom";
 import { normalizeRole } from "@/lib/roleUtils";
 import { useEffect, useState } from "react";
 import {
@@ -236,7 +236,7 @@ const Dashboard = () => {
             <Button variant="outline">
               Exporter
             </Button>
-            <Button variant="hero" onClick={() => navigate('/dashboard/catalog')}>
+            <Button variant="hero" onClick={() => navigate('/catalogue')}>
               Nouvelle prestation
             </Button>
           </div>
@@ -276,14 +276,26 @@ const Dashboard = () => {
                         <Calendar className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">{equipmentName}</p>
+                        <p className="font-medium text-foreground truncate">
+                          {rental.prestation_type || equipmentName}
+                          {rental.properties?.name && <span className="text-muted-foreground font-normal"> - {rental.properties.name}</span>}
+                        </p>
                         <p className="text-sm text-muted-foreground">{clientName}</p>
                       </div>
-                      <div className="text-right">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${statusStyles[rental.status as keyof typeof statusStyles] || statusStyles.pending}`}>
-                          {statusLabels[rental.status as keyof typeof statusLabels] || "En attente"}
-                        </span>
-                        <p className="text-xs text-muted-foreground mt-1">{rentalDate}</p>
+                      <div className="text-right flex flex-col items-end gap-1">
+                        <div className="flex gap-2">
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${statusStyles[rental.status as keyof typeof statusStyles] || statusStyles.pending}`}>
+                            {statusLabels[rental.status as keyof typeof statusLabels] || "En attente"}
+                          </span>
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium border ${rental.payment_status === 'paid' ? 'bg-green-500/10 text-green-500 border-green-200' :
+                            rental.payment_status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-200' :
+                              'bg-red-500/10 text-red-500 border-red-200'
+                            }`}>
+                            {rental.payment_status === 'paid' ? 'Payé' : rental.payment_status === 'pending' ? 'Non payé' : 'Échoué'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{rentalDate}</p>
+                        <p className="font-semibold text-sm">{formatCurrency(rental.total_price)}</p>
                       </div>
                     </div>
                   );
@@ -346,18 +358,24 @@ const Dashboard = () => {
             <div className="bg-card rounded-xl border border-border p-6">
               <h3 className="font-semibold text-foreground mb-4">Actions rapides</h3>
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
-                  <Package className="w-4 h-4 mr-2" />
-                  Ajouter un matériel
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Users className="w-4 h-4 mr-2" />
-                  Nouveau client
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Planifier une prestation
-                </Button>
+                <Link to="/dashboard/stock">
+                  <Button variant="outline" className="w-full justify-start mb-2">
+                    <Package className="w-4 h-4 mr-2" />
+                    Ajouter un matériel
+                  </Button>
+                </Link>
+                <Link to="/dashboard/users">
+                  <Button variant="outline" className="w-full justify-start mb-2">
+                    <Users className="w-4 h-4 mr-2" />
+                    Nouveau client
+                  </Button>
+                </Link>
+                <Link to="/catalogue">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Planifier une prestation
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

@@ -21,7 +21,8 @@ import {
     CreditCard,
     Wheat,
     DollarSign,
-    ArrowRight
+    ArrowRight,
+    Zap
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
@@ -108,7 +109,7 @@ const ClientDashboard = () => {
                             <p className="text-3xl font-bold text-orange-700 mb-3">
                                 {formatCurrency(creditsToPayAtHarvest)}
                             </p>
-                            <Link to="/dashboard/my-rentals">
+                            <Link to="/dashboard/my-rentals?filter=unpaid">
                                 <Button variant="ghost" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 p-0">
                                     Voir les détails <ArrowRight className="w-4 h-4 ml-1" />
                                 </Button>
@@ -196,18 +197,18 @@ const ClientDashboard = () => {
                     <Card className="p-6 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-950/20 dark:to-gray-900/10 border-gray-200 hover:shadow-lg transition-shadow">
                         <div className="flex items-start justify-between mb-4">
                             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <ShoppingCart className="w-6 h-6 text-primary" />
+                                <Zap className="w-6 h-6 text-primary" />
                             </div>
                         </div>
                         <div>
-                            <p className="text-sm text-muted-foreground mb-1">Nouvelle prestation</p>
-                            <p className="text-lg font-semibold mb-3">
-                                Louer du matériel
-                            </p>
-                            <Link to="/dashboard/catalog">
-                                <Button size="sm" className="w-full">
-                                    <ShoppingCart className="w-4 h-4 mr-2" />
-                                    Voir le catalogue
+                            <p className="text-sm text-muted-foreground mb-3">Actions rapides</p>
+                            <Link to="/catalogue">
+                                <Button className="w-full justify-start h-auto py-3 px-4" variant="default">
+                                    <CalendarPlus className="w-5 h-5 mr-3" />
+                                    <div className="flex flex-col items-start">
+                                        <span className="font-semibold">Planifier une prestation</span>
+                                        <span className="text-xs font-normal opacity-90">Louer du matériel ou un service</span>
+                                    </div>
                                 </Button>
                             </Link>
                         </div>
@@ -233,23 +234,30 @@ const ClientDashboard = () => {
                                             <Tractor className="w-5 h-5 text-primary" />
                                         </div>
                                         <div>
-                                            <p className="font-medium">{rental.equipment?.name}</p>
+                                            <p className="font-medium">
+                                                {rental.prestation_type || rental.equipment?.name}
+                                                {rental.properties?.name && <span className="text-muted-foreground font-normal"> - {rental.properties.name}</span>}
+                                            </p>
                                             <p className="text-sm text-muted-foreground">
                                                 {new Date(rental.start_date).toLocaleDateString('fr-FR')} - {new Date(rental.end_date).toLocaleDateString('fr-FR')}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-semibold">{formatCurrency(rental.total_price)}</p>
-                                        <Badge variant={
-                                            rental.status === 'completed' ? 'default' :
-                                                rental.status === 'active' ? 'secondary' :
-                                                    rental.status === 'cancelled' ? 'destructive' : 'outline'
-                                        } className="text-xs">
-                                            {rental.status === 'completed' ? 'Terminé' :
-                                                rental.status === 'active' ? 'En cours' :
-                                                    rental.status === 'cancelled' ? 'Annulé' : 'En attente'}
-                                        </Badge>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <p className="font-semibold">{formatCurrency(rental.total_price)}</p>
+                                            <Badge variant={
+                                                rental.payment_status === 'paid' ? 'default' :
+                                                    rental.payment_status === 'pending' ? 'secondary' : 'destructive'
+                                            } className={
+                                                rental.payment_status === 'paid' ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20 border-0' :
+                                                    rental.payment_status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border-0' :
+                                                        'bg-red-500/10 text-red-500 hover:bg-red-500/20 border-0'
+                                            }>
+                                                {rental.payment_status === 'paid' ? 'Payé' :
+                                                    rental.payment_status === 'pending' ? 'Non payé' : 'Échoué'}
+                                            </Badge>
+                                        </div>
                                     </div>
                                 </div>
                             ))}

@@ -129,6 +129,16 @@ const App = () => (
                   <Harvests />
                 </ProtectedRoute>
               } />
+              <Route path="/dashboard/my-rentals" element={
+                <ProtectedRoute allowedRoles={['client', 'admin', 'super_admin']}>
+                  <MyRentals />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/my-invoices" element={
+                <ProtectedRoute allowedRoles={['client', 'admin', 'super_admin']}>
+                  <MyInvoices />
+                </ProtectedRoute>
+              } />
               <Route path="/dashboard/settings" element={
                 <ProtectedRoute>
                   <Settings />

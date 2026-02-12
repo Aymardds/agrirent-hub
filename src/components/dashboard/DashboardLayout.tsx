@@ -96,7 +96,7 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
       { icon: LayoutDashboard, label: "Accueil", href: "/dashboard/client" },
       { icon: Home, label: "Mes Propriétés", href: "/dashboard/properties" },
       { icon: Wheat, label: "Mes Récoltes", href: "/dashboard/harvests" },
-      { icon: ShoppingCart, label: "Catalogue", href: "/dashboard/catalog" },
+      { icon: ShoppingCart, label: "Catalogue", href: "/catalogue" },
       { icon: Calendar, label: "Mes prestations", href: "/dashboard/my-rentals" },
       { icon: FileText, label: "Factures", href: "/dashboard/my-invoices" },
     ],
