@@ -150,7 +150,7 @@ const Footer = () => {
         <div className="pt-8 border-t border-sidebar-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
             <p className="text-sidebar-foreground/60 text-sm">
-              © 2024 OUTILTECH - Une solution{" "}
+              © {new Date().getFullYear()} OUTILTECH - Une solution{" "}
               <a
                 href="https://www.grainotech.com"
                 target="_blank"

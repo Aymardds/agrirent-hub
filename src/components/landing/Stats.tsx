@@ -1,45 +1,14 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useLandingStats } from "@/hooks/useLandingStats";
 
 const Stats = () => {
-  const [stats, setStats] = useState([
-    { value: "0+", label: "Matériels disponibles" },
-    { value: "0+", label: "Locations réalisées" },
-    { value: "0+", label: "Clients satisfaits" },
-    { value: "98%", label: "Taux de satisfaction" },
-  ]);
+  const { data: stats } = useLandingStats();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        // Fetch equipment count
-        const { count: equipmentCount } = await supabase
-          .from("equipment")
-          .select("*", { count: "exact", head: true });
-
-        // Fetch rentals count
-        const { count: rentalsCount } = await supabase
-          .from("rentals")
-          .select("*", { count: "exact", head: true });
-
-        // Fetch users count (as clients)
-        const { count: usersCount } = await supabase
-          .from("profiles")
-          .select("*", { count: "exact", head: true });
-
-        setStats([
-          { value: `${equipmentCount || 0}+`, label: "Matériels disponibles" },
-          { value: `${rentalsCount || 0}+`, label: "Locations réalisées" },
-          { value: `${usersCount || 0}+`, label: "Clients inscrits" }, // Changed from "Clients satisfaits" to be more accurate
-          { value: "98%", label: "Taux de satisfaction" },
-        ]);
-      } catch (error) {
-        console.error("Error fetching stats:", error);
-      }
-    };
-
-    fetchStats();
-  }, []);
+  const statItems = [
+    { value: `${stats?.equipmentCount || 0}`, label: "Matériels disponibles" },
+    { value: `${stats?.rentalsCount || 0}+`, label: "Prestations réalisées" },
+    { value: `${stats?.usersCount || 0}+`, label: "Clients inscrits" },
+    { value: `${stats?.occupancyRate || 0}%`, label: "Taux de réalisation" },
+  ];
 
   return (
     <section className="py-20">
@@ -65,7 +34,7 @@ const Stats = () => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {stats.map((stat, index) => (
+              {statItems.map((stat, index) => (
                 <div
                   key={index}
                   className="text-center p-6 rounded-2xl bg-primary-foreground/10 backdrop-blur-sm"

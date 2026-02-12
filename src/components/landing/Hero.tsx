@@ -1,8 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2, Play } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLandingStats } from "@/hooks/useLandingStats";
 
 const Hero = () => {
+  const { data: stats } = useLandingStats();
+
+  // Helper to format large numbers
+  const formatCompactNumber = (number: number) => {
+    const formatter = Intl.NumberFormat("en", { notation: "compact" });
+    return formatter.format(number);
+  };
+
   const features = [
     "Location de matériel motorisé",
     "Gestion de stock en temps réel",
@@ -54,10 +63,12 @@ const Hero = () => {
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
-              <Button variant="glass" size="xl" className="w-full sm:w-auto">
-                <Play className="w-5 h-5" />
-                Voir la démo
-              </Button>
+              <Link to="/login">
+                <Button variant="glass" size="xl" className="w-full sm:w-auto">
+                  <Play className="w-5 h-5" />
+                  Voir la démo
+                </Button>
+              </Link>
             </div>
 
             <p className="text-sm text-muted-foreground/60 mb-8 animate-fade-up" style={{ animationDelay: "0.35s" }}>
@@ -103,9 +114,21 @@ const Hero = () => {
                 <div className="p-6">
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     {[
-                      { label: "Matériels", value: "248", color: "bg-primary/10 text-primary" },
-                      { label: "Locations", value: "56", color: "bg-success/10 text-success" },
-                      { label: "Revenus", value: "12.4M", color: "bg-secondary/10 text-secondary" },
+                      {
+                        label: "Matériels",
+                        value: stats?.equipmentCount?.toString() || "3",
+                        color: "bg-primary/10 text-primary"
+                      },
+                      {
+                        label: "Prestations",
+                        value: stats?.rentalsCount?.toString() || "+20",
+                        color: "bg-success/10 text-success"
+                      },
+                      {
+                        label: "Revenus",
+                        value: stats?.totalRevenue ? formatCompactNumber(stats.totalRevenue) : "+500000FCFA",
+                        color: "bg-secondary/10 text-secondary"
+                      },
                     ].map((stat, i) => (
                       <div key={i} className={`${stat.color} rounded-xl p-4`}>
                         <p className="text-2xl font-display font-bold">{stat.value}</p>
@@ -138,7 +161,7 @@ const Hero = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium">Location confirmée</p>
-                    <p className="text-xs text-muted-foreground">Tracteur John Deere</p>
+                    <p className="text-xs text-muted-foreground">Tiémoko Alain</p>
                   </div>
                 </div>
               </div>
@@ -149,7 +172,7 @@ const Hero = () => {
                     <span className="text-lg">📦</span>
                   </div>
                   <div>
-                    <p className="text-sm font-medium">+15 matériels</p>
+                    <p className="text-sm font-medium">+{stats?.equipmentAddedThisMonth || 10} matériels</p>
                     <p className="text-xs text-muted-foreground">ajoutés ce mois</p>
                   </div>
                 </div>
