@@ -13,6 +13,7 @@ import MyEquipment from "./pages/dashboard/MyEquipment";
 import MyRentals from "./pages/dashboard/MyRentals";
 import MyInvoices from "./pages/dashboard/MyInvoices";
 import Properties from "./pages/dashboard/Properties";
+import Harvests from "./pages/dashboard/Harvests";
 import UsersList from "./pages/dashboard/UsersList";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -30,6 +31,7 @@ import TechnicianDashboard from "./pages/dashboard/TechnicianDashboard";
 import ClientDashboard from "./pages/dashboard/ClientDashboard";
 import StockManagerDashboard from "./pages/dashboard/StockManagerDashboard";
 import AccountantDashboard from "./pages/dashboard/AccountantDashboard";
+import Expenses from "./pages/dashboard/Expenses";
 import DebugRole from "./pages/dashboard/DebugRole";
 import ConnectionTest from "./pages/ConnectionTest";
 import NetworkDiagnostic from "./pages/NetworkDiagnostic";
@@ -102,6 +104,11 @@ const App = () => (
                 <Accounting />
               </ProtectedRoute>
             } />
+            <Route path="/dashboard/expenses" element={
+              <ProtectedRoute allowedRoles={['accountant', 'admin', 'super_admin']}>
+                <Expenses />
+              </ProtectedRoute>
+            } />
             <Route path="/dashboard/payments" element={
               <ProtectedRoute allowedRoles={['accountant', 'admin', 'super_admin']}>
                 <Accounting />
@@ -120,6 +127,11 @@ const App = () => (
             <Route path="/dashboard/properties" element={
               <ProtectedRoute allowedRoles={['client', 'cooperative', 'super_admin']}>
                 <Properties />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/harvests" element={
+              <ProtectedRoute allowedRoles={['client', 'cooperative', 'super_admin']}>
+                <Harvests />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/catalog" element={

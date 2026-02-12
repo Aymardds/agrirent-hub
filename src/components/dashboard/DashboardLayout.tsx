@@ -15,7 +15,10 @@ import {
   Wrench,
   ShoppingCart,
   BarChart3,
-  Home
+  Home,
+  Wheat,
+  DollarSign,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -63,7 +66,7 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
       { icon: Calendar, label: "Prestations", href: "/dashboard/rentals" },
       { icon: Wrench, label: "Interventions", href: "/dashboard/interventions" },
       { icon: BarChart3, label: "Statistiques", href: "/dashboard/stats" },
-      { icon: FileText, label: "Facturation", href: "/dashboard/invoices" },
+      { icon: FileText, label: "Finance", href: "/dashboard/invoices" },
       { icon: Settings, label: "Paramètres", href: "/dashboard/settings" },
     ],
     admin: [
@@ -73,7 +76,7 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
       { icon: Calendar, label: "Prestations", href: "/dashboard/rentals" },
       { icon: Wrench, label: "Interventions", href: "/dashboard/interventions" },
       { icon: BarChart3, label: "Statistiques", href: "/dashboard/stats" },
-      { icon: FileText, label: "Facturation", href: "/dashboard/invoices" },
+      { icon: FileText, label: "Finance", href: "/dashboard/invoices" },
       { icon: Settings, label: "Paramètres", href: "/dashboard/settings" },
     ],
     stock_manager: [
@@ -92,13 +95,16 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
     client: [
       { icon: LayoutDashboard, label: "Accueil", href: "/dashboard/client" },
       { icon: Home, label: "Mes Propriétés", href: "/dashboard/properties" },
+      { icon: Wheat, label: "Mes Récoltes", href: "/dashboard/harvests" },
       { icon: ShoppingCart, label: "Catalogue", href: "/dashboard/catalog" },
       { icon: Calendar, label: "Mes prestations", href: "/dashboard/my-rentals" },
       { icon: FileText, label: "Factures", href: "/dashboard/my-invoices" },
     ],
     accountant: [
       { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard/accountant" },
-      { icon: FileText, label: "Facturation", href: "/dashboard/invoices" },
+      { icon: FileText, label: "Finance", href: "/dashboard/invoices" },
+      { icon: DollarSign, label: "Dépenses", href: "/dashboard/expenses" },
+      { icon: CreditCard, label: "Crédits", href: "/dashboard/credits" },
       { icon: BarChart3, label: "États financiers", href: "/dashboard/finances" },
       { icon: Calendar, label: "Paiements", href: "/dashboard/payments" },
     ],
