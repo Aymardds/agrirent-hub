@@ -18,25 +18,12 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-              return 'vendor-react';
-            }
-            if (id.includes('@radix-ui') || id.includes('lucide-react') || id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge')) {
-              return 'vendor-ui';
-            }
-            if (id.includes('@supabase')) {
-              return 'vendor-supabase';
-            }
-            if (id.includes('date-fns') || id.includes('recharts')) {
-              return 'vendor-utils';
-            }
-            if (id.includes('@tanstack')) {
-              return 'vendor-query';
-            }
-            return 'vendor'; // Fallback for other node_modules
-          }
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-slot', '@radix-ui/react-toast', '@radix-ui/react-label', '@radix-ui/react-avatar', '@radix-ui/react-dropdown-menu', 'lucide-react', 'class-variance-authority', 'clsx', 'tailwind-merge', 'sonner'],
+          supabase: ['@supabase/supabase-js'],
+          utils: ['date-fns', 'recharts'],
+          query: ['@tanstack/react-query']
         }
       }
     }
