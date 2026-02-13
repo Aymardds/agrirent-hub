@@ -26,7 +26,7 @@ interface Rental {
 }
 
 const Accounting = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [transactions, setTransactions] = useState<Rental[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
@@ -45,7 +45,7 @@ const Accounting = () => {
                 `);
 
             // If not super_admin, strictly filter revenue by Owned Equipment
-            if (user.user_metadata?.role !== 'super_admin') {
+            if (profile?.role !== 'super_admin') {
                 query = query.eq('equipment.owner_id', user.id);
             }
 

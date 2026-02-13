@@ -31,17 +31,17 @@ interface InterventionDialogProps {
     intervention?: any;
 }
 
-export const InterventionDialog = ({ 
-    isOpen, 
-    onClose, 
-    onSuccess, 
+export const InterventionDialog = ({
+    isOpen,
+    onClose,
+    onSuccess,
     selectedDate,
-    intervention 
+    intervention
 }: InterventionDialogProps) => {
     const [loading, setLoading] = useState(false);
     const [technicians, setTechnicians] = useState<any[]>([]);
     const [equipment, setEquipment] = useState<any[]>([]);
-    
+
     const [formData, setFormData] = useState({
         title: "",
         description: "",
@@ -81,7 +81,7 @@ export const InterventionDialog = ({
                 .from("profiles")
                 .select("id, full_name")
                 .eq("role", "technician");
-            
+
             if (techError) throw techError;
             setTechnicians(techData || []);
 
@@ -89,7 +89,7 @@ export const InterventionDialog = ({
             const { data: equipData, error: equipError } = await supabase
                 .from("equipment")
                 .select("id, name");
-            
+
             if (equipError) throw equipError;
             setEquipment(equipData || []);
         } catch (error: any) {
@@ -191,33 +191,37 @@ export const InterventionDialog = ({
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Date et heure *</Label>
-                            <Input
-                                type="datetime-local"
-                                value={formData.scheduled_date}
-                                onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Priorité</Label>
-                            <Select
-                                value={formData.priority}
-                                onValueChange={(val) => setFormData({ ...formData, priority: val })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="low">Basse</SelectItem>
-                                    <SelectItem value="medium">Moyenne</SelectItem>
-                                    <SelectItem value="high">Haute</SelectItem>
-                                    <SelectItem value="critical">Critique</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="scheduled_date">Date et heure de la mission *</Label>
+                        <Input
+                            id="scheduled_date"
+                            type="datetime-local"
+                            value={formData.scheduled_date}
+                            onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+                            required
+                            className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Choisissez la date et l'heure prévues pour cette intervention
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Priorité</Label>
+                        <Select
+                            value={formData.priority}
+                            onValueChange={(val) => setFormData({ ...formData, priority: val })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="low">Basse</SelectItem>
+                                <SelectItem value="medium">Moyenne</SelectItem>
+                                <SelectItem value="high">Haute</SelectItem>
+                                <SelectItem value="critical">Critique</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-2">

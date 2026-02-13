@@ -62,7 +62,12 @@ const InvoiceDialog = ({ open, onOpenChange, rental }: InvoiceDialogProps) => {
                         </thead>
                         <tbody>
                             <tr className="border-b border-gray-100">
-                                <td className="py-2">{rental.equipment?.name}</td>
+                                <td className="py-2">
+                                    <div>{rental.equipment?.name}</div>
+                                    {rental.prestation_type && (
+                                        <div className="text-sm text-gray-500">Service: {rental.prestation_type}</div>
+                                    )}
+                                </td>
                                 <td className="text-right py-2">{rental.start_date} - {rental.end_date}</td>
                                 <td className="text-right py-2">{rental.total_price.toLocaleString()} FCFA</td>
                             </tr>

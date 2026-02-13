@@ -85,7 +85,8 @@ const StockManagerDashboard = () => {
         equipment_id: "",
         technician_id: "",
         title: "Mission de prestation",
-        priority: "high"
+        priority: "high",
+        scheduled_date: "",
     });
 
     // Data lists for forms
@@ -505,6 +506,19 @@ const StockManagerDashboard = () => {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Date de la mission *</Label>
+                                <Input
+                                    type="datetime-local"
+                                    value={assignData.scheduled_date || ""}
+                                    onChange={(e) => setAssignData({ ...assignData, scheduled_date: e.target.value })}
+                                    required
+                                    className="w-full"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Choisissez la date et l'heure prévues pour cette mission
+                                </p>
                             </div>
                         </div>
                         <DialogFooter>

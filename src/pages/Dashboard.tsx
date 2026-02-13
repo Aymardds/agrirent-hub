@@ -87,8 +87,9 @@ const Dashboard = () => {
 
   if (!user) return <Navigate to="/login" />;
 
-  // Prioritize profile role (from DB) over metadata role (from Auth cookie)
-  const role = normalizeRole(profile?.role || user.user_metadata?.role);
+  // Use ONLY the profile role from the database — never fall back to user_metadata
+  // which can be stale and cause role flickering
+  const role = normalizeRole(profile?.role);
 
   console.log('🎯 Dashboard Dispatcher - Rendering dashboard for role:', role);
 

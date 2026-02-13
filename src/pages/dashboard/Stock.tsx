@@ -67,7 +67,7 @@ interface Equipment {
 }
 
 const Stock = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [equipment, setEquipment] = useState<Equipment[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -95,8 +95,8 @@ const Stock = () => {
     };
     const [formData, setFormData] = useState(initialFormState);
 
-    // Permissions check
-    const canManage = ['stock_manager', 'admin', 'super_admin'].includes(user?.user_metadata?.role || '');
+    // Permissions check — use profile.role from DB, not user_metadata
+    const canManage = ['stock_manager', 'admin', 'super_admin'].includes(profile?.role || '');
 
     useEffect(() => {
         fetchEquipment();

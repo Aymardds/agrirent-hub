@@ -10,7 +10,7 @@ import { InterventionDialog } from "@/components/dashboard/InterventionDialog";
 import { Calendar, Wrench, Loader2 } from "lucide-react";
 
 const Planning = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [interventions, setInterventions] = useState<any[]>([]);
     const [rentals, setRentals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -20,7 +20,8 @@ const Planning = () => {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [selectedIntervention, setSelectedIntervention] = useState<any>(null);
 
-    const role = user?.user_metadata?.role;
+    // Use profile.role from DB, not user_metadata
+    const role = profile?.role;
     const isTechnician = role === 'technician';
     const isManager = ['stock_manager', 'admin', 'super_admin'].includes(role || '');
 

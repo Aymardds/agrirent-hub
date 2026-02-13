@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
@@ -37,10 +37,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Use refs to track initialization and mount state across async calls
+    const initializedRef = useRef(false);
+    const isMountedRef = useRef(true);
+    const fetchingRef = useRef(false);
+
     const fetchProfile = async (userId: string, userObject?: User | null) => {
+        // Prevent concurrent fetches — only the first one runs
+        if (fetchingRef.current) {
+            console.log('⏭️ AuthContext: Profile fetch already in progress, skipping');
+            return;
+        }
+        fetchingRef.current = true;
         console.log('🔄 AuthContext: Fetching profile for', userId);
 
-        // Timeout of 10 seconds
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('AuthContext: Profile fetch timeout (10s)')), 10000)
         );
@@ -59,8 +69,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 const { data, error } = response;
                 if (error) {
                     console.error('❌ AuthContext: Error fetching profile:', error);
-                    throw error; // Throw to handle fallback in catch block
-                } else {
+                    throw error;
+                } else if (isMountedRef.current) {
                     console.log('✅ AuthContext: Profile fetched successfully', data);
                     setProfile(data);
                 }
@@ -68,11 +78,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (err: any) {
             console.error('❌ AuthContext: Profile fetch failed or timed out:', err);
 
-            // Use provided user object or current session user as fallback
-            // Avoid making new async calls (getUser) here as they might also hang/fail
-            const currentUser = userObject || user || session?.user;
+            const currentUser = userObject;
 
-            if (currentUser?.user_metadata?.role) {
+            if (isMountedRef.current && currentUser?.user_metadata?.role) {
                 console.log('⚠️ AuthContext: Using role from user metadata as fallback');
                 setProfile({
                     id: userId,
@@ -83,17 +91,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     company: currentUser.user_metadata.company || null,
                     avatar_url: null
                 });
-            } else {
-                setProfile(null);
             }
+            // Do NOT set profile to null — keep whatever was there before
         } finally {
-            setLoading(false);
-            console.log('🏁 AuthContext: Profile fetch flow completed, loading set to false');
+            fetchingRef.current = false;
+            if (isMountedRef.current) {
+                setLoading(false);
+                console.log('🏁 AuthContext: Profile fetch flow completed, loading set to false');
+            }
         }
     };
 
     useEffect(() => {
-        let initialized = false;
+        isMountedRef.current = true;
         console.log('🔐 AuthContext: Initializing mounting...');
 
         const initAuth = async () => {
@@ -101,41 +111,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 const { data: { session } } = await supabase.auth.getSession();
                 console.log('✅ AuthContext: getSession result', { hasSession: !!session });
 
-                if (session) {
+                if (session && isMountedRef.current) {
                     setSession(session);
                     setUser(session.user);
-                    await fetchProfile(session.user.id, session.user); // Pass session.user for robust fallback
-                } else {
+                    await fetchProfile(session.user.id, session.user);
+                } else if (isMountedRef.current) {
                     setLoading(false);
                 }
-                initialized = true;
+                initializedRef.current = true;
             } catch (error) {
                 console.error('❌ AuthContext: Initialization error', error);
-                setLoading(false);
+                if (isMountedRef.current) setLoading(false);
             }
         };
 
         initAuth();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('🔄 AuthContext: onAuthStateChange event', { event, hasSession: !!session });
+            console.log('🔄 AuthContext: onAuthStateChange event', { event, hasSession: !!session, initialized: initializedRef.current });
 
-            // Only re-fetch if the session definitely changed or we weren't initialized
-            if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || (event === 'INITIAL_SESSION' && !initialized)) {
-                setSession(session);
-                setUser(session?.user ?? null);
-                if (session?.user) {
-                    await fetchProfile(session.user.id, session.user);
+            // Skip INITIAL_SESSION if initAuth already handled it
+            if (event === 'INITIAL_SESSION' && initializedRef.current) {
+                console.log('⏭️ AuthContext: Skipping INITIAL_SESSION — already initialized');
+                return;
+            }
+
+            if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
+                if (isMountedRef.current) {
+                    setSession(session);
+                    setUser(session?.user ?? null);
+                    if (session?.user) {
+                        await fetchProfile(session.user.id, session.user);
+                    }
                 }
             } else if (event === 'SIGNED_OUT') {
-                setSession(null);
-                setUser(null);
-                setProfile(null);
-                setLoading(false);
+                if (isMountedRef.current) {
+                    setSession(null);
+                    setUser(null);
+                    setProfile(null);
+                    setLoading(false);
+                }
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            isMountedRef.current = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     const value = {

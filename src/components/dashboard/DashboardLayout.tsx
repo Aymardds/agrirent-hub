@@ -1,3 +1,4 @@
+import { NotificationBell } from "./NotificationBell";
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -37,8 +38,8 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
   const navigate = useNavigate();
   const { user, profile } = useAuth();
 
-  // Use the role from profile (DB) first, then user metadata (Auth), with normalization, fallback to prop
-  const normalizedRole = normalizeRole(profile?.role || user?.user_metadata?.role);
+  // Use ONLY the profile role from the database — never fall back to user_metadata
+  const normalizedRole = normalizeRole(profile?.role);
   const userRole = (normalizedRole as UserRole) || propUserRole;
 
   const handleLogout = async () => {
@@ -214,10 +215,7 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="relative w-10 h-10 rounded-lg bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors">
-                <Bell className="w-5 h-5 text-muted-foreground" />
-                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-destructive" />
-              </button>
+              <NotificationBell />
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <span className="text-sm font-semibold text-primary">
                   {user?.user_metadata?.full_name

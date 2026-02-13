@@ -39,7 +39,7 @@ interface Intervention {
 }
 
 const Interventions = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [interventions, setInterventions] = useState<Intervention[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -129,8 +129,8 @@ const Interventions = () => {
         }
     };
 
-    // Logic for filtering based on role
-    const isManager = ['super_admin', 'admin', 'stock_manager'].includes(user?.user_metadata?.role);
+    // Logic for filtering based on role — use profile.role from DB, not user_metadata
+    const isManager = ['super_admin', 'admin', 'stock_manager'].includes(profile?.role || '');
 
     const myActiveInterventions = interventions.filter(i => {
         // Status filter
