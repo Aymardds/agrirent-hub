@@ -37,39 +37,17 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useStock, Equipment, Service } from "@/hooks/useStock";
 
-interface ServicePrice {
-    amount: number;
-    unit: string;
-}
 
-interface Service {
-    id?: string;
-    name: string;
-    description: string;
-    prices: ServicePrice[];
-}
-
-interface Equipment {
-    id: string;
-    name: string;
-    category: string;
-    service_type: string;
-    price: number;
-    price_unit: string;
-    location: string;
-    description: string;
-    image_url: string;
-    gallery: string[];
-    status: "available" | "rented" | "maintenance";
-    owner_id: string;
-    equipment_services?: Service[];
-}
 
 const Stock = () => {
     const { user, profile } = useAuth();
-    const [equipment, setEquipment] = useState<Equipment[]>([]);
-    const [loading, setLoading] = useState(true);
+    // Permissions check
+    const canManage = ['stock_manager', 'admin', 'super_admin'].includes(profile?.role || '');
+
+    const { equipment, isLoading: loading, deleteEquipment, refetch } = useStock({ userId: user?.id, canManage });
+
     const [searchTerm, setSearchTerm] = useState("");
 
     // Form States
@@ -94,38 +72,6 @@ const Stock = () => {
         services: [] as Service[],
     };
     const [formData, setFormData] = useState(initialFormState);
-
-    // Permissions check — use profile.role from DB, not user_metadata
-    const canManage = ['stock_manager', 'admin', 'super_admin'].includes(profile?.role || '');
-
-    useEffect(() => {
-        fetchEquipment();
-    }, [user]);
-
-    const fetchEquipment = async () => {
-        if (!user) return;
-        setLoading(true);
-        try {
-            let query = supabase
-                .from("equipment")
-                .select("*, equipment_services(*)")
-                .order('created_at', { ascending: false });
-
-            // RLS handles permission, but we apply filter logic for non-admins just in case
-            if (!canManage) {
-                query = query.eq('owner_id', user.id);
-            }
-
-            const { data, error } = await query;
-            if (error) throw error;
-            setEquipment(data || []);
-        } catch (error) {
-            console.error("Error fetching stock:", error);
-            toast.error("Erreur chargement stock");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const uploadImage = async (file: File) => {
         try {
@@ -212,7 +158,7 @@ const Stock = () => {
             toast.success(isEditMode ? "Matériel modifié !" : "Matériel ajouté !");
             setIsDialogOpen(false);
             resetForm();
-            fetchEquipment();
+            refetch();
         } catch (error: any) {
             toast.error("Erreur: " + error.message);
         }
@@ -224,7 +170,7 @@ const Stock = () => {
             const { error } = await supabase.from("equipment").delete().eq('id', deleteId);
             if (error) throw error;
             toast.success("Matériel supprimé");
-            setEquipment(equipment.filter(e => e.id !== deleteId));
+            // setEquipment(equipment.filter(e => e.id !== deleteId)); // Handled by useStock mutation invalidation
         } catch (error: any) {
             toast.error("Erreur suppression: " + error.message);
         } finally {

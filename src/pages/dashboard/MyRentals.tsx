@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRentals, Rental } from "@/hooks/useRentals";
 import { toast } from "sonner";
 import { Calendar, CheckCircle2, XCircle, Clock, FileText, CreditCard, Wallet, Home, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,37 +13,7 @@ import InvoiceDialog from "@/components/dashboard/InvoiceDialog";
 import PaymentDialog from "@/components/dashboard/PaymentDialog";
 import { Badge } from "@/components/ui/badge";
 
-interface Rental {
-    id: string;
-    start_date: string;
-    end_date: string;
-    total_price: number;
-    status: "pending" | "active" | "completed" | "cancelled";
-    payment_status: "pending" | "paid" | "failed";
-    prestation_type?: string;
-    invoice_number?: string;
-    properties?: {
-        name: string;
-        unit?: string;
-    };
-    equipment: {
-        name: string;
-        image_url: string;
-        location: string;
-        owner_id: string;
-    };
-    renter?: {
-        full_name: string;
-        phone: string;
-    };
-    interventions?: {
-        technician?: {
-            full_name: string;
-        };
-        area_covered?: number;
-        created_at?: string;
-    }[];
-}
+
 
 import { useSearchParams } from "react-router-dom";
 
@@ -53,87 +24,31 @@ const MyRentals = () => {
     const [searchParams] = useSearchParams();
     const filter = searchParams.get('filter');
     const [activeTab, setActiveTab] = useState("tenant"); // tenant, owner, planning
-    const [rentals, setRentals] = useState<Rental[]>([]);
-    const [loading, setLoading] = useState(true);
+
+    // Use the custom hook for data fetching and mutations
+    const {
+        rentals,
+        isLoading: loading,
+        updateStatus,
+        updatePaymentStatus,
+        refetch
+    } = useRentals({
+        userId: user?.id,
+        activeTab,
+        filter
+    });
+
     const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
     const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
-    const fetchRentals = async () => {
-        if (!user) return;
-        setLoading(true);
-
-        try {
-            let query = supabase.from("rentals").select(`
-        *,
-        equipment (name, image_url, location, owner_id),
-        properties (name, unit),
-        interventions (technician:technician_id (full_name), area_covered, created_at),
-        prestation_type,
-        renter:renter_id (full_name, phone)
-      `);
-
-            if (activeTab === "tenant") {
-                query = query.eq("renter_id", user.id);
-
-                // Apply filter for unpaid rentals if requested
-                if (filter === 'unpaid') {
-                    query = query.neq('payment_status', 'paid');
-                }
-            } else {
-                // Determine if we are owners
-                const { data: myEquipment } = await supabase.from("equipment").select("id").eq("owner_id", user.id);
-                const myEquipmentIds = myEquipment?.map(e => e.id) || [];
-
-                // If checking planning, we might want to see everything relevant (rentals I made OR rentals on my equipment)
-                // For now, let's treat "planning" as "Owner Planning" mostly, or both.
-                // Simplified: If tab is 'planning', fetch rentals for my equipment (same as 'owner' tab source)
-
-                if (myEquipmentIds.length === 0) {
-                    if (activeTab !== "tenant") {
-                        setRentals([]);
-                        setLoading(false);
-                        return;
-                    }
-                } else {
-                    query = query.in("equipment_id", myEquipmentIds);
-                }
-            }
-
-            const { data, error } = await query.order("created_at", { ascending: false });
-            if (error) throw error;
-            setRentals(data || []);
-        } catch (error: any) {
-            toast.error("Erreur: " + error.message);
-        } finally {
-            setLoading(false);
-        }
+    // Manual update wrappers to match previous signature (if needed) or use directly
+    const handleUpdateStatus = (rentalId: string, newStatus: string) => {
+        updateStatus({ id: rentalId, status: newStatus });
     };
 
-    useEffect(() => {
-        fetchRentals();
-    }, [user, activeTab, filter]);
-
-    const updateStatus = async (rentalId: string, newStatus: string) => {
-        try {
-            const { error } = await supabase.from("rentals").update({ status: newStatus }).eq("id", rentalId);
-            if (error) throw error;
-            toast.success("Statut mis à jour");
-            fetchRentals();
-        } catch (error: any) {
-            toast.error(error.message);
-        }
-    };
-
-    const updatePaymentStatus = async (rentalId: string, newStatus: string) => {
-        try {
-            const { error } = await supabase.from("rentals").update({ payment_status: newStatus }).eq("id", rentalId);
-            if (error) throw error;
-            toast.success("Statut de paiement mis à jour");
-            fetchRentals();
-        } catch (error: any) {
-            toast.error(error.message);
-        }
+    const handleUpdatePaymentStatus = (rentalId: string, newStatus: string) => {
+        updatePaymentStatus({ id: rentalId, status: newStatus });
     };
 
     const handleViewInvoice = (rental: Rental) => {
@@ -147,7 +62,7 @@ const MyRentals = () => {
     };
 
     const onPaymentSuccess = () => {
-        fetchRentals();
+        refetch();
         // Dialog will close via user interaction or we can close it here if needed, 
         // but the component handles its 'Success' state.
         // If we want to auto-close after success we could set timeout, but user might want to see confirmation.
@@ -303,7 +218,7 @@ const MyRentals = () => {
                                                 {activeTab === "owner" && (
                                                     <>
                                                         {rental.payment_status !== 'paid' && (
-                                                            <Button size="sm" variant="outline" onClick={() => updatePaymentStatus(rental.id, 'paid')}>
+                                                            <Button size="sm" variant="outline" onClick={() => handleUpdatePaymentStatus(rental.id, 'paid')}>
                                                                 <CreditCard className="w-4 h-4 mr-2" />
                                                                 Marquer Payé
                                                             </Button>
@@ -311,16 +226,16 @@ const MyRentals = () => {
 
                                                         {rental.status === "pending" && (
                                                             <>
-                                                                <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => updateStatus(rental.id, 'cancelled')}>
+                                                                <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => handleUpdateStatus(rental.id, 'cancelled')}>
                                                                     Refuser
                                                                 </Button>
-                                                                <Button size="sm" variant="hero" onClick={() => updateStatus(rental.id, 'active')}>
+                                                                <Button size="sm" variant="hero" onClick={() => handleUpdateStatus(rental.id, 'active')}>
                                                                     Accepter
                                                                 </Button>
                                                             </>
                                                         )}
                                                         {rental.status === "active" && (
-                                                            <Button size="sm" variant="default" onClick={() => updateStatus(rental.id, 'completed')}>
+                                                            <Button size="sm" variant="default" onClick={() => handleUpdateStatus(rental.id, 'completed')}>
                                                                 Terminer Prestation
                                                             </Button>
                                                         )}
