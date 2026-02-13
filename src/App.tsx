@@ -36,6 +36,8 @@ const ClientDashboard = lazy(() => import("./pages/dashboard/ClientDashboard"));
 const StockManagerDashboard = lazy(() => import("./pages/dashboard/StockManagerDashboard"));
 const AccountantDashboard = lazy(() => import("./pages/dashboard/AccountantDashboard"));
 const Expenses = lazy(() => import("./pages/dashboard/Expenses"));
+const Credits = lazy(() => import("./pages/dashboard/Credits"));
+const Payments = lazy(() => import("./pages/dashboard/Payments"));
 const DebugRole = lazy(() => import("./pages/dashboard/DebugRole"));
 const ConnectionTest = lazy(() => import("./pages/ConnectionTest"));
 const NetworkDiagnostic = lazy(() => import("./pages/NetworkDiagnostic"));
@@ -114,9 +116,31 @@ const App = () => (
                   <Planning />
                 </ProtectedRoute>
               } />
+
+
+              // ... existing imports
+
               <Route path="/dashboard/stats" element={
-                <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'super_admin', 'accountant']}>
                   <Stats />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/dashboard/finances" element={
+                <ProtectedRoute allowedRoles={['admin', 'super_admin', 'accountant']}>
+                  <Stats />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/dashboard/credits" element={
+                <ProtectedRoute allowedRoles={['accountant', 'admin', 'super_admin']}>
+                  <Credits />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/dashboard/payments" element={
+                <ProtectedRoute allowedRoles={['accountant', 'admin', 'super_admin']}>
+                  <Payments />
                 </ProtectedRoute>
               } />
               <Route path="/dashboard/properties" element={

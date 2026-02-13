@@ -44,8 +44,8 @@ const Accounting = () => {
                     equipment!inner (name, owner_id)
                 `);
 
-            // If not super_admin, strictly filter revenue by Owned Equipment
-            if (profile?.role !== 'super_admin') {
+            // If not super_admin or accountant, strictly filter revenue by Owned Equipment
+            if (profile?.role !== 'super_admin' && profile?.role !== 'accountant') {
                 query = query.eq('equipment.owner_id', user.id);
             }
 
