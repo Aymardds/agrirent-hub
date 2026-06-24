@@ -19,7 +19,9 @@ import {
   Home,
   Wheat,
   DollarSign,
-  CreditCard
+  CreditCard,
+  MapPin,
+  Satellite
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -65,6 +67,8 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
       { icon: Users, label: "Utilisateurs", href: "/dashboard/users" },
       { icon: Package, label: "Matériels", href: "/dashboard/stock" },
       { icon: Calendar, label: "Prestations", href: "/dashboard/rentals" },
+      { icon: MapPin, label: "Suivi Flotte", href: "/dashboard/fleet" },
+      { icon: Satellite, label: "Dispositifs GPS", href: "/dashboard/gps-devices" },
       { icon: Wrench, label: "Interventions", href: "/dashboard/interventions" },
       { icon: BarChart3, label: "Statistiques", href: "/dashboard/stats" },
       { icon: FileText, label: "Finance", href: "/dashboard/invoices" },
@@ -75,6 +79,8 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
       { icon: Users, label: "Utilisateurs", href: "/dashboard/users" },
       { icon: Package, label: "Matériels", href: "/dashboard/stock" },
       { icon: Calendar, label: "Prestations", href: "/dashboard/rentals" },
+      { icon: MapPin, label: "Suivi Flotte", href: "/dashboard/fleet" },
+      { icon: Satellite, label: "Dispositifs GPS", href: "/dashboard/gps-devices" },
       { icon: Wrench, label: "Interventions", href: "/dashboard/interventions" },
       { icon: BarChart3, label: "Statistiques", href: "/dashboard/stats" },
       { icon: FileText, label: "Finance", href: "/dashboard/invoices" },
@@ -83,11 +89,14 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
     stock_manager: [
       { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard/stock-manager" },
       { icon: Package, label: "Stock", href: "/dashboard/stock" },
+      { icon: MapPin, label: "Suivi Flotte", href: "/dashboard/fleet" },
+      { icon: Satellite, label: "Dispositifs GPS", href: "/dashboard/gps-devices" },
       { icon: Calendar, label: "Planning", href: "/dashboard/planning" },
       { icon: Wrench, label: "Maintenance", href: "/dashboard/maintenance" },
     ],
     technician: [
       { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard/technician" },
+      { icon: MapPin, label: "Suivi Flotte", href: "/dashboard/fleet" },
       { icon: Calendar, label: "Planning", href: "/dashboard/planning" },
       { icon: Wrench, label: "Interventions", href: "/dashboard/interventions" },
       { icon: BarChart3, label: "Statistiques", href: "/dashboard/stats" },

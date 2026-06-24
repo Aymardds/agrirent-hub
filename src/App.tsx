@@ -41,6 +41,8 @@ const Payments = lazy(() => import("./pages/dashboard/Payments"));
 const DebugRole = lazy(() => import("./pages/dashboard/DebugRole"));
 const ConnectionTest = lazy(() => import("./pages/ConnectionTest"));
 const NetworkDiagnostic = lazy(() => import("./pages/NetworkDiagnostic"));
+const Fleet = lazy(() => import("./pages/dashboard/Fleet"));
+const GpsDevices = lazy(() => import("./pages/dashboard/GpsDevices"));
 
 const queryClient = new QueryClient();
 
@@ -74,6 +76,16 @@ const App = () => (
               <Route path="/dashboard/equipment" element={
                 <ProtectedRoute allowedRoles={['client', 'stock_manager', 'admin', 'super_admin', 'cooperative', 'provider']}>
                   <Stock />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/fleet" element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'stock_manager', 'technician']}>
+                  <Fleet />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/gps-devices" element={
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'stock_manager']}>
+                  <GpsDevices />
                 </ProtectedRoute>
               } />
               <Route path="/dashboard/rentals" element={
