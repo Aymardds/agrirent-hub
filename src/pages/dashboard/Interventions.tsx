@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import InterventionCalendar from "@/components/dashboard/InterventionCalendar";
 import { GPSTracker } from "@/components/dashboard/GPSTracker";
+import type { GPSPoint } from "@/hooks/usePhoneGPS";
 
 interface Intervention {
     id: string;
@@ -111,7 +112,7 @@ const Interventions = () => {
         }
     };
 
-    const saveGPSData = async (id: string, path: any[], area: number) => {
+    const saveGPSData = async (id: string, path: GPSPoint[], area: number) => {
         try {
             const { error } = await supabase
                 .from("interventions")
@@ -323,6 +324,7 @@ const Interventions = () => {
                                                         <GPSTracker
                                                             isActive={true}
                                                             initialPath={task.gps_path || []}
+                                                            sessionKey={task.id}
                                                             onSave={(path, area) => saveGPSData(task.id, path, area)}
                                                         />
 
