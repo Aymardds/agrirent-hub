@@ -29,6 +29,8 @@ import TechnicianDashboard from "./dashboard/TechnicianDashboard";
 import ClientDashboard from "./dashboard/ClientDashboard";
 import StockManagerDashboard from "./dashboard/StockManagerDashboard";
 import AccountantDashboard from "./dashboard/AccountantDashboard";
+import CooperativeDashboard from "./dashboard/CooperativeDashboard";
+import CooperativeOrdersAdmin from "@/components/dashboard/CooperativeOrdersAdmin";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -111,6 +113,10 @@ const Dashboard = () => {
 
   if (role === 'accountant') {
     return <AccountantDashboard />;
+  }
+
+  if (role === 'cooperative') {
+    return <CooperativeDashboard />;
   }
 
   // --- DEFAULT ADMIN / SUPER ADMIN DASHBOARD ---
@@ -354,6 +360,9 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* Cooperative Orders Admin Widget */}
+            <CooperativeOrdersAdmin />
 
             {/* Quick Actions */}
             <div className="bg-card rounded-xl border border-border p-6">

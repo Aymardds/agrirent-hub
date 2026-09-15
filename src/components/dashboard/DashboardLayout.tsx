@@ -21,7 +21,8 @@ import {
   DollarSign,
   CreditCard,
   MapPin,
-  Satellite
+  Satellite,
+  Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -118,6 +119,16 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
       { icon: BarChart3, label: "États financiers", href: "/dashboard/finances" },
       { icon: Calendar, label: "Paiements", href: "/dashboard/payments" },
     ],
+    cooperative: [
+      { icon: LayoutDashboard, label: "Tableau de bord", href: "/dashboard" },
+      { icon: Users, label: "Mes membres", href: "/dashboard/cooperative/members" },
+      { icon: ShoppingCart, label: "Commandes groupées", href: "/dashboard/cooperative/orders" },
+      { icon: Calendar, label: "Prestations", href: "/dashboard/rentals" },
+      { icon: Home, label: "Propriétés", href: "/dashboard/properties" },
+      { icon: Wheat, label: "Récoltes", href: "/dashboard/harvests" },
+      { icon: FileText, label: "Factures", href: "/dashboard/my-invoices" },
+      { icon: Settings, label: "Paramètres", href: "/dashboard/settings" },
+    ],
   };
 
   const menu = roleMenus[userRole] || roleMenus.client;
@@ -129,6 +140,7 @@ const DashboardLayout = ({ children, userRole: propUserRole = "super_admin" }: D
     technician: " Technicien",
     client: "Client",
     accountant: "Comptabilité",
+    cooperative: "Coopérative",
   };
 
   return (

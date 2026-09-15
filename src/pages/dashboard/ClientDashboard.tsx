@@ -29,13 +29,19 @@ import { Link } from "react-router-dom";
 import { useClientDashboardStats, useRecentRentals } from "@/hooks/useDashboardData";
 import { useCreditStats } from "@/hooks/usePayments";
 import { supabase } from "@/lib/supabase";
+import { useMyCooperativeAnnouncements } from "@/hooks/useCooperativeOrders";
+import CooperativeAnnouncementCard from "@/components/dashboard/CooperativeAnnouncementCard";
 
 const ClientDashboard = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const { data: stats, isLoading: statsLoading } = useClientDashboardStats(user?.id);
     const { data: recentRentals, isLoading: rentalsLoading } = useRecentRentals(5);
     const { data: creditStats } = useCreditStats(user?.id);
     const [propertiesCount, setPropertiesCount] = useState(0);
+
+    // Annonces de la coopérative si le client est membre d'une coopérative
+    const cooperativeId = profile?.cooperative_id as string | null | undefined;
+    const { data: coopAnnouncements } = useMyCooperativeAnnouncements(cooperativeId);
 
     useEffect(() => {
         if (user) {
@@ -264,7 +270,28 @@ const ClientDashboard = () => {
                         </div>
                     </Card>
                 )}
-            </div>
+
+                {/* Section Annonces Coopérative */}
+                {cooperativeId && coopAnnouncements && coopAnnouncements.length > 0 && (
+                    <div>
+                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            🏘️ Annonces de votre coopérative
+                            <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                                {coopAnnouncements.length}
+                            </span>
+                        </h2>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {coopAnnouncements.map((order) => (
+                                <CooperativeAnnouncementCard
+                                    key={order.id}
+                                    order={order}
+                                    memberId={user!.id}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+        </div>
         </DashboardLayout>
     );
 };

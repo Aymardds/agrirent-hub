@@ -43,6 +43,9 @@ const ConnectionTest = lazy(() => import("./pages/ConnectionTest"));
 const NetworkDiagnostic = lazy(() => import("./pages/NetworkDiagnostic"));
 const Fleet = lazy(() => import("./pages/dashboard/Fleet"));
 const GpsDevices = lazy(() => import("./pages/dashboard/GpsDevices"));
+const CooperativeDashboardPage = lazy(() => import("./pages/dashboard/CooperativeDashboard"));
+const CooperativeOrderDetail = lazy(() => import("./pages/dashboard/CooperativeOrderDetail"));
+const CooperativeMembers = lazy(() => import("./pages/dashboard/CooperativeMembers"));
 
 const queryClient = new QueryClient();
 
@@ -156,22 +159,22 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/dashboard/properties" element={
-                <ProtectedRoute allowedRoles={['client', 'admin', 'super_admin']}>
+                <ProtectedRoute allowedRoles={['client', 'admin', 'super_admin', 'cooperative']}>
                   <Properties />
                 </ProtectedRoute>
               } />
               <Route path="/dashboard/harvests" element={
-                <ProtectedRoute allowedRoles={['client', 'admin', 'super_admin']}>
+                <ProtectedRoute allowedRoles={['client', 'admin', 'super_admin', 'cooperative']}>
                   <Harvests />
                 </ProtectedRoute>
               } />
               <Route path="/dashboard/my-rentals" element={
-                <ProtectedRoute allowedRoles={['client', 'admin', 'super_admin']}>
+                <ProtectedRoute allowedRoles={['client', 'admin', 'super_admin', 'cooperative']}>
                   <MyRentals />
                 </ProtectedRoute>
               } />
               <Route path="/dashboard/my-invoices" element={
-                <ProtectedRoute allowedRoles={['client', 'admin', 'super_admin']}>
+                <ProtectedRoute allowedRoles={['client', 'admin', 'super_admin', 'cooperative']}>
                   <MyInvoices />
                 </ProtectedRoute>
               } />
@@ -203,6 +206,28 @@ const App = () => (
               <Route path="/dashboard/debug-role" element={
                 <ProtectedRoute allowedRoles={['super_admin']}>
                   <DebugRole />
+                </ProtectedRoute>
+              } />
+
+              {/* Cooperative Routes */}
+              <Route path="/dashboard/cooperative" element={
+                <ProtectedRoute allowedRoles={['cooperative']}>
+                  <CooperativeDashboardPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/cooperative/orders/:orderId" element={
+                <ProtectedRoute allowedRoles={['cooperative', 'admin', 'super_admin']}>
+                  <CooperativeOrderDetail />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/cooperative/orders" element={
+                <ProtectedRoute allowedRoles={['cooperative']}>
+                  <CooperativeDashboardPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/cooperative/members" element={
+                <ProtectedRoute allowedRoles={['cooperative', 'admin', 'super_admin']}>
+                  <CooperativeMembers />
                 </ProtectedRoute>
               } />
 
